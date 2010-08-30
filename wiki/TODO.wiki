@@ -5,8 +5,15 @@
 This is a TODO list.  Please list what needs to be done along with the module it needs to be in.
 
 
-= Tasks =
+= R1 =
 
-List: 
-  * set up a development system
-  * checkout svn onto development system
+Tasks:
+  * setup development system
+  * checkout repo onto system
+  * start module 1
+
+= R2 =
+= R3 =
+= R4 =
+= R5 =
+= R6 =
