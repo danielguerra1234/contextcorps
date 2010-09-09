@@ -1,0 +1,5 @@
+Geck OS
+
+Hello and welcome to GeckOS.  This is an MPX project production to create a 
+simple operating system using C on top of MSDOS.  I hope you enjoy your 
+experience and as always have a pleasant day.
