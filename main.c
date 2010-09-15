@@ -5,17 +5,23 @@
 
 date_rec *date_p; 
 void displayDate();
-void changeDate(int year, int month, int day);
+void changeDate(int, int, int);
+int help(int);
+void version();
+void terminate();
 
 int main(void) {
-   char tester[50] = "Testing 1 2 3\n\0";
-   int *testbug = strlen(tester);
    sys_init(MODULE_R1);
+   
+   printf("Welcome to GeckOS. Enjoy your Experience.");
    //displayDate();
    //displayDate();
    //errorCodeTranslator(ERR_SUP_INVDEV);
    clrscr();
-   changeDate(3009, 9, 9);
+   //changeDate(3009, 9, 9);
+   //version();
+   //help(3);
+   terminate();
 return 1;
 }
 
@@ -174,34 +180,35 @@ void changeDate(int year, int month, int day) {
           displayDate();
         }                      
 }
-/* 
+ 
 int help(int i){
-    printf("The commands:\n");
-    printf("1- Version \n");
-    printf("2- Display the date \n");
-    printf("3- Change the date \n")
-    printf("4- Display MPX Directory \n");
-    printf("5- Exit");
     switch(i){
         case 1:
-        printf("This command is 'Version', it displays the version and module of GeckOS");
+          printf("This command is 'Version', it displays the version and module of GeckOS");
+          break;
         case 2:
-        printf("This command is 'displayDate', it prints to the screen the current date of the system ");
+          printf("This command is 'displayDate', it prints to the screen the current date of the system ");
+          break;
         case 3:
-        printf("This command is 'changeDate', it takes integers year, month and date; verifies they are correct, and change the date of the system");
+          printf("This command is 'changeDate', it takes integers year, month and date; verifies they are correct, and change the date of the system");
+          break;
         case 4:
-        printf("This command is 'dmd', it displays information about all the files: typically the name and size in bytes");
+          printf("This command is 'dmd', it displays information about all the files: typically the name and size in bytes");
+          break;
         case 5:
-        printf("This command is 'exit', it stops GeckOS from running");
+          printf("This command is 'exit', it stops GeckOS from running");
+          break;
     }
          
-    return  i;
+    return  0;
 }   
- 
 void version (){
-    printf("This is the version #1.0 of GeckOs");
-    printf("Module #R1")
-    printf("Last Modified: 09/15/2010");
+    printf("This is the version #1.0 of GeckOs\n");
+    printf("Module #R1\n");
+    printf("Last Modified: 09/15/2010\n");
     return 0;
 }
-*/
+
+void terminate() {
+    sys_exit();
+}
