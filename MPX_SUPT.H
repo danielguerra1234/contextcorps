@@ -140,9 +140,7 @@ typedef struct {
 	
 	/* sys_set_vec: set trap vector for system call handler */
 	/*	RETURNS: integer error code; zero if ok */
-	int sys_set_vec
-		( void interrupt (*handler)() /* system call handler */
-		);
+	int sys_set_vec (void interrupt (*handler)()); /* system call handler */
 
 	/* sys_req: request system service */
 	/*	RETURNS: result or error code depending on service */
