@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <termios.h>
 #include "MPX_SUPT.H"
 
 void init();
@@ -22,7 +21,8 @@ int help(char *command);
 int errorCodeTranslator(int code);
 void version();
 void removeNL(char *s);
-//void terminate();
+void terminate();
+void clearScreen();
 
 date_rec *date_p;
 char prompt[20] = "~> ";
@@ -32,9 +32,6 @@ int main(void) {
 	int *lengthPtr = &inputLength;
 	char input[100];
 	int exitCode = 0;
-//	sys_init(MODULE_R1);
-//	sys_req(WRITE,TERMINAL,greeting, &length);
-//	clrscr();
 	init();
 	do {
 		printf("%s ", prompt);
@@ -43,16 +40,12 @@ int main(void) {
 		removeNL(input);
 		exitCode = parseCommand(input);
 	} while (exitCode == 0);
-//	errorCodeTranslator(exitCode);
-	if (exitCode != 1) {
-		errorCodeTranslator(exitCode);
-		return EXIT_FAILURE;
-	}
-	else return EXIT_SUCCESS;
-//	terminate();
+	if (exitCode != 1) errorCodeTranslator(exitCode);
+	terminate();
 }
 
 void init() {
+	clearScreen();
 	char greeting[20] = "Welcome to GeckOS!\0";
 	puts(greeting);
 	//	sys_init(MODULE_R1);
@@ -97,167 +90,161 @@ int parseCommand(char *commandString) {
 	return 0; //by getting this far, a valid command was passed and run, so let's get another one
 }
 
-   //displayDate();
-   //displayDate();
-   //errorCodeTranslator(ERR_SUP_INVDEV);
-   //changeDate(3009, 9, 9);
-   //version();
-   //help(3);
-	int errorCodeTranslator(int code) {
+int errorCodeTranslator(int code) {
 
-		switch (code) {
-		case (-100):
-		printf("Invalid Device Code\n");
-		  return 0;
+	switch (code) {
+	case (-100):
+	printf("Invalid Device Code\n");
+	  return 0;
 
-		case(-101):
-		  printf("Invalid Op Code\n");
-		  return 0;
+	case(-101):
+	  printf("Invalid Op Code\n");
+	  return 0;
 
-		case(-102):
-		  printf("Invalid Character Position\n");
-		  return 0;
+	case(-102):
+	  printf("Invalid Character Position\n");
+	  return 0;
 
-		case (-103):
-		  printf("Read has failed\n");
-		  return 0;
+	case (-103):
+	  printf("Read has failed\n");
+	  return 0;
 
-		case (-104):
-		  printf("Write has failed\n");
-		  return 0;
+	case (-104):
+	  printf("Write has failed\n");
+	  return 0;
 
-		case (-105):
-		  printf("Invalid Memory Pointer\n");
-		  return 0;
+	case (-105):
+	  printf("Invalid Memory Pointer\n");
+	  return 0;
 
-		case (-106):
-		  printf("Free Memory Failed\n");
-		  return 0;
+	case (-106):
+	  printf("Free Memory Failed\n");
+	  return 0;
 
-		case (-107):
-		  printf("Invalid Date\n");
-		  return 0;
+	case (-107):
+	  printf("Invalid Date\n");
+	  return 0;
 
-		case (-108):
-		  printf("Date Not Changed\n");
-		  return 0;
+	case (-108):
+	  printf("Date Not Changed\n");
+	  return 0;
 
-		case (-109):
-		  printf("Invalid Directory\n");
-		  return 0;
+	case (-109):
+	  printf("Invalid Directory\n");
+	  return 0;
 
-		case (-110):
-		  printf("Directoy Open\n");
-		  return 0;
+	case (-110):
+	  printf("Directoy Open\n");
+	  return 0;
 
-		case (-111):
-		  printf("No Directory is Open\n");
-		  return 0;
+	case (-111):
+	  printf("No Directory is Open\n");
+	  return 0;
 
-		case (-112):
-		  printf("No More Directory Entries\n");
-		  return 0;
+	case (-112):
+	  printf("No More Directory Entries\n");
+	  return 0;
 
-		case (-113):
-		  printf("Name Buffer was Too Long\n");
-		  return 0;
+	case (-113):
+	  printf("Name Buffer was Too Long\n");
+	  return 0;
 
-		case (-114):
-		  printf("The Directory is Closed\n");
-		  return 0;
+	case (-114):
+	  printf("The Directory is Closed\n");
+	  return 0;
 
-		case (-115):
-		  printf("Loading Failed\n");
-		  return 0;
+	case (-115):
+	  printf("Loading Failed\n");
+	  return 0;
 
-		case (-116):
-		  printf("File Not Found\n");
-		  return 0;
+	case (-116):
+	  printf("File Not Found\n");
+	  return 0;
 
-		case (-117):
-		  printf("File Invalid\n");
-		  return 0;
+	case (-117):
+	  printf("File Invalid\n");
+	  return 0;
 
-		case (-118):
-		  printf("Program Size Error\n");
-		  return 0;
+	case (-118):
+	  printf("Program Size Error\n");
+	  return 0;
 
-		case (-119):
-		  printf("Invaliid Load Address\n");
-		  return 0;
+	case (-119):
+	  printf("Invaliid Load Address\n");
+	  return 0;
 
-		case (-120):
-		  printf("Memory allociation Error\n");
-		  return 0;
+	case (-120):
+	  printf("Memory allociation Error\n");
+	  return 0;
 
-		case (-121):
-		  printf("Free Memory Error\n");
-		  return 0;
+	case (-121):
+	  printf("Free Memory Error\n");
+	  return 0;
 
-		case (-122):
-		  printf("Invalid Handler Address\n");
-		  return 0;
-		}
-		return -1; //failed to find error code
+	case (-122):
+	  printf("Invalid Handler Address\n");
+	  return 0;
 	}
+	return -1; //failed to find error code
+}
 
-	void displayDate (){
-		sys_get_date(date_p);
-		printf("%d-",date_p->year);
-		printf("%d-",date_p->month);
-		printf("%d\n",date_p->day);
-	}
-	
-	void clearScreen () {
-     clrscr();
-     return;
-     }
+void displayDate() {
+	sys_get_date(date_p);
+	printf("%d-",date_p->year);
+	printf("%d-",date_p->month);
+	printf("%d\n",date_p->day);
+}
 
-	void changeDate(int year, int month, int day) {
-		int i;
-		date_rec reset;
-		date_rec *save_date;
-		printf("Original date:\n");
-		displayDate();
+void clearScreen() {
+ clrscr();
+ return;
+}
 
-		save_date->year = year;
-		save_date->month = month;
-		save_date->day = day;
+void changeDate(int year, int month, int day) {
+	int i;
+	date_rec reset;
+	date_rec *save_date;
+	printf("Original date:\n");
+	displayDate();
 
-		if (year > 1000 || year < 2013) {
-			if((month== 1 || month==3 || month==5 || month==7 || month== 8 || month==10 || month==12) && day>31 ) {
-					printf("Error Encountered: 31 day error\n");
-					return;
- 					}
-			if((month== 4 || month==6 || month==9 || month==11) || day>30)  {
-					printf("Error Encountered: 30 day error\n");
-					return;
- 				}
-			if (month == 2) {
-					if (year%4 == 0 && day > 30) {
-					  printf("Error Encounterd: Leap Year Error\n");
-				  return;
-					  }
-					else if(month== 2 && day>29)    {
-					  printf("Error Encountered: February Error\n");
-					  return;
-					  }// End else if
-				  } //End inside if
-			  } //End Outer if
-		 else {
-		  printf("Invalid Year");
-		}
-		i = sys_set_date(save_date);
-		if (save_date->year  == date_p->year && save_date->month  == date_p->month && save_date->day  == date_p->day)
-			 i= ERR_SUP_DATNCH;
-		if ( i == ERR_SUP_INVDAT)
-			  printf("Error Code: %d\n Invalid Date\n",ERR_SUP_INVDAT);
-		if (i == OK)   {
-			  printf("Date Successfully Set\n");
-			  printf("Date after setting:\n");
-			  displayDate();
+	save_date->year = year;
+	save_date->month = month;
+	save_date->day = day;
+
+	if (year > 1000 || year < 2013) {
+		if((month== 1 || month==3 || month==5 || month==7 || month== 8 || month==10 || month==12) && day>31 ) {
+				printf("Error Encountered: 31 day error\n");
+				return;
+				}
+		if((month== 4 || month==6 || month==9 || month==11) || day>30)  {
+				printf("Error Encountered: 30 day error\n");
+				return;
 			}
+		if (month == 2) {
+				if (year%4 == 0 && day > 30) {
+				  printf("Error Encounterd: Leap Year Error\n");
+			  return;
+				  }
+				else if(month== 2 && day>29)    {
+				  printf("Error Encountered: February Error\n");
+				  return;
+				  }// End else if
+			  } //End inside if
+		  } //End Outer if
+	 else {
+	  printf("Invalid Year");
 	}
+	i = sys_set_date(save_date);
+	if (save_date->year  == date_p->year && save_date->month  == date_p->month && save_date->day  == date_p->day)
+		 i= ERR_SUP_DATNCH;
+	if ( i == ERR_SUP_INVDAT)
+		  printf("Error Code: %d\n Invalid Date\n",ERR_SUP_INVDAT);
+	if (i == OK)   {
+		  printf("Date Successfully Set\n");
+		  printf("Date after setting:\n");
+		  displayDate();
+		}
+}
 
 int help(char *command){
 	if (command == NULL) {
@@ -302,7 +289,8 @@ void version () {
 void removeNL(char *s) {
 	s[strcspn(s, "\n")] = '\0';
 }
-	void terminate() {
-		printf("Goodbye.\n");
-//		sys_exit();
-	}
+
+void terminate() {
+	printf("Goodbye.\n");
+//	sys_exit();
+}
