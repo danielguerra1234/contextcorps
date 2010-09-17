@@ -13,6 +13,9 @@
 #include <string.h>
 #include "MPX_SUPT.H"
 
+#define SIZE 10000
+
+
 void init();
 int parseCommand(char *commandString);
 void displayDate();
@@ -23,6 +26,12 @@ void version();
 void removeNL(char *s);
 void terminate();
 void clearScreen();
+void dmd();
+
+long buffer_length = 100;
+unsigned char buffer[SIZE];
+
+
 
 date_rec *date_p;
 char prompt[20] = "~> ";
@@ -71,6 +80,9 @@ int parseCommand(char *commandString) {
 	else if (strcmp(command,"version") == 0) {
 		version();
 	}
+	else if (strcmp(command,"dir") == 0) {
+    dmd();
+  }
 	else if (strcmp(command,"clearScreen") == 0) {
     clrscr();
   }
@@ -90,6 +102,28 @@ int parseCommand(char *commandString) {
 		return 1;
 	} else printf("%s is not a valid command. For a list of valid commands, type 'help'\n", command);
 	return 0; //by getting this far, a valid command was passed and run, so let's get another one
+}
+
+void dmd (){
+	int i, j, k, n ;
+	FILE *f;
+	i= sys_open_dir("./"); //please create a folder and put on it files with the .MPX extension and put the path in between these brackets
+	//please note: if u are putting it within the current directory, just type in \0
+	if (i == 0){
+		for(j=0; j<buffer_length; j++)
+			k= sys_get_entry(buffer, j, &buffer_length); //
+			if(k!= ERR_SUP_NOENTR){
+				n=fread(buffer, SIZE, 1, f);
+				printf("%s\t", &buffer);
+			}
+			else 
+				return;
+	}else if(i == ERR_SUP_INVDIR)
+		printf("Invalid name directory"); //please check if you handled thie error or not, so we avoid repeating it
+	else if (i == ERR_SUP_DIROPN)
+		printf("Directory could not open");
+	sys_close_dir();
+
 }
 
 int errorCodeTranslator(int code) {
