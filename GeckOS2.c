@@ -104,8 +104,14 @@ int parseCommand(char *commandString) {
 		}
 	}
 	else if (strcmp(command, "setprompt") == 0) {
-		if (arg1 != NULL && strlen(arg1) <= 20) {
-			setPrompt(arg1);
+		if (arg1 != NULL) {
+			if (strlen(arg1) <= 20) {
+				setPrompt(arg1);
+			} else {
+				puts("Prompt argument must be 20 characters or less");
+			}
+		} else {
+			puts("You must enter a string to set the prompt to");
 		}
 	}
 	else if (strcmp(command,"date") == 0) {
@@ -307,7 +313,8 @@ int help(char *command){
 				"dir : displays the current director of GeckOS\n"
 				"clear : clears screen\n"
 				"cd : changes directory -- Does not require -arguement\n"
-				"exit : closes the system\n");
+				"exit : closes the system\n"
+				"setprompt : sets the prompt with the given argument");
 		return 0;
 	}
 	if (strcmp(command,"help") == 0) {
@@ -338,6 +345,10 @@ int help(char *command){
 		printf("This command closes the program\n");
 		return 0;
 	}
+	if (strcmp(command,"setprompt") == 0) {
+			printf("This command changes the prompt to the given argument. The argument must be 20 characters or less\n");
+			return 0;
+		}
 	return -1; //if it got this far, the command was not found
 }
 void version () {
