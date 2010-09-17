@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <dirent.h>
+
 #include "MPX_SUPT.H"
 
 #define SIZE 10000
@@ -26,12 +29,16 @@ void version();
 void removeNL(char *s);
 void terminate();
 void clearScreen();
+void listDir();
 void dmd();
+void changeDir(DIR *arg);
 
 long buffer_length = 100;
 unsigned char buffer[SIZE];
 
+DIR *dp;
 
+struct dirent *ep;
 
 date_rec *date_p;
 char prompt[20] = "~> ";
@@ -59,6 +66,7 @@ void init() {
   char greeting[20] = "Welcome to GeckOS!\0";
 	clearScreen();
 	puts(greeting);
+	dp = opendir ("./");
 	//	sys_init(MODULE_R1);
 }
 
@@ -80,12 +88,20 @@ int parseCommand(char *commandString) {
 	else if (strcmp(command,"version") == 0) {
 		version();
 	}
-	else if (strcmp(command,"dir") == 0) {
-    dmd();
-  }
-	else if (strcmp(command,"clearScreen") == 0) {
+	else if (strcmp(command,"clear") == 0) {
     clrscr();
   }
+  else if (strcmp(command,"cd") == 0) {
+    if (arg1 == NULL) {
+      printf("cd required a path\n");
+      return 0;
+    }
+    else if(arg1 != NULL) {
+      changeDir(arg1);
+      return 0;
+    }
+  }
+  
 	else if (strcmp(command,"date") == 0) {
 		puts("calling date function");
 		if (arg1 == NULL) displayDate(); //if the user wants to display the date
@@ -98,32 +114,30 @@ int parseCommand(char *commandString) {
 		}
 	} else if (strcmp(command,"dir") == 0) {
 		puts("Calling dir function");
+		listDir();
 	} else if (strcmp(command,"exit") == 0) {
 		return 1;
 	} else printf("%s is not a valid command. For a list of valid commands, type 'help'\n", command);
 	return 0; //by getting this far, a valid command was passed and run, so let's get another one
 }
 
-void dmd (){
-	int i, j, k, n ;
-	FILE *f;
-	i= sys_open_dir("./"); //please create a folder and put on it files with the .MPX extension and put the path in between these brackets
-	//please note: if u are putting it within the current directory, just type in \0
-	if (i == 0){
-		for(j=0; j<buffer_length; j++)
-			k= sys_get_entry(buffer, j, &buffer_length); //
-			if(k!= ERR_SUP_NOENTR){
-				n=fread(buffer, SIZE, 1, f);
-				printf("%s\t", &buffer);
-			}
-			else 
-				return;
-	}else if(i == ERR_SUP_INVDIR)
-		printf("Invalid name directory"); //please check if you handled thie error or not, so we avoid repeating it
-	else if (i == ERR_SUP_DIROPN)
-		printf("Directory could not open");
-	sys_close_dir();
+void listDir() {
+       
+       if (dp != NULL)
+         {
+           while (ep = readdir (dp))
+             puts (ep->d_name);
+           (void) closedir (dp);
+         }
+       else
+         perror ("Couldn't open the directory");
+     
+       return 0;
+}
 
+void changeDir(DIR *arg) {
+      dp = opendir(arg);
+      return 0;
 }
 
 int errorCodeTranslator(int code) {
@@ -288,7 +302,8 @@ int help(char *command){
 				"version : display GeckOS version\n"
 				"date : display or set date. Enter 'help date' to see more info'\n"
 				"dir : displays the current director of GeckOS\n"
-				"clearScreen : clears screen\n"
+				"clear : clears screen\n"
+				"cd : changes directory -- Does not require -arguement\n"
 				"exit : closes the system\n");
 		return 0;
 	}
@@ -299,7 +314,11 @@ int help(char *command){
 		printf("This command displays the current date. Use with argument '-set year month day' to change the date instead, where year, month, and day are all integers.\n");
 		return 0;
 	}
-	if (strcmp(command,"clearScreen") == 0) {
+	if (strcmp(command,"cd") == 0) {
+    printf("Changes the directory\n");
+    return 0;
+  }
+	if (strcmp(command,"clear") == 0) {
     printf("This command simply clears the screen\n");
     return 0;
   }
