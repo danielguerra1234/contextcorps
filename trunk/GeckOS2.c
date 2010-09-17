@@ -42,7 +42,7 @@ DIR *dp;
 struct dirent *ep;
 
 date_rec *date_p;
-char prompt[21] = "~> ";
+char *prompt = "~> ";
 
 int main(void) {
 	int inputLength = 100;
@@ -315,7 +315,7 @@ int help(char *command){
 		return 0;
 	}
 	if (strcmp(command,"date") == 0) {
-		printf("This command displays the current date. Use with argument '-set year month day' to change the date instead, where year, month, and day are all integers.\n");
+		printf("This command displays the current date. Use with argument 'set year month day' to change the date instead, where year, month, and day are all integers.\n");
 		return 0;
 	}
 	if (strcmp(command,"cd") == 0) {
