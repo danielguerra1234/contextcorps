@@ -42,11 +42,13 @@ int main(void) {
 	} while (exitCode == 0);
 	if (exitCode != 1) errorCodeTranslator(exitCode);
 	terminate();
+	
+	return 0;
 }
 
 void init() {
+  char greeting[20] = "Welcome to GeckOS!\0";
 	clearScreen();
-	char greeting[20] = "Welcome to GeckOS!\0";
 	puts(greeting);
 	//	sys_init(MODULE_R1);
 }
@@ -213,26 +215,26 @@ void changeDate(int year, int month, int day) {
 
 	if (year > 1000 || year < 2013) {
 		if((month== 1 || month==3 || month==5 || month==7 || month== 8 || month==10 || month==12) && day>31 ) {
-				printf("Error Encountered: 31 day error\n");
+				printf("Error Encountered: %d is greater than 31\n",save_date->day);
 				return;
 				}
 		if((month== 4 || month==6 || month==9 || month==11) || day>30)  {
-				printf("Error Encountered: 30 day error\n");
+				printf("Error Encountered: %d is greater than 30\n",save_date->day);
 				return;
 			}
 		if (month == 2) {
 				if (year%4 == 0 && day > 30) {
-				  printf("Error Encounterd: Leap Year Error\n");
+				  printf("Error Encounterd: %D is an invalid day for month %d\n",save_date->day, save_date->month);
 			  return;
 				  }
 				else if(month== 2 && day>29)    {
-				  printf("Error Encountered: February Error\n");
+				  printf("Error Encountered: %d is greater than 28 for month %d\n",save_date->day, save_date->month);
 				  return;
 				  }// End else if
 			  } //End inside if
 		  } //End Outer if
 	 else {
-	  printf("Invalid Year");
+	  printf("Invalid Year: %d",save_date->year);
 	}
 	i = sys_set_date(save_date);
 	if (save_date->year  == date_p->year && save_date->month  == date_p->month && save_date->day  == date_p->day)
@@ -252,6 +254,7 @@ int help(char *command){
 				"version : display GeckOS version\n"
 				"date : display or set date. Enter 'help date' to see more info'\n"
 				"dir : displays the current director of GeckOS\n"
+				"clearScreen : clears screen\n"
 				"exit : closes the system\n");
 		return 0;
 	}
@@ -263,7 +266,7 @@ int help(char *command){
 		return 0;
 	}
 	if (strcmp(command,"clearScreen") == 0) {
-    printf("This command simply clears the screen");
+    printf("This command simply clears the screen\n");
     return 0;
   }
 	if (strcmp(command,"version") == 0) {
