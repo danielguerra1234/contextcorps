@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 //#include <termios.h>
-//#include "MPX_SUPT.H"
+#include "MPX_SUPT.H"
 
 void init();
 int parseCommand(char *commandString);
@@ -24,7 +24,7 @@ void version();
 void removeNL(char *s);
 //void terminate();
 
-//date_rec *date_p;
+date_rec *date_p;
 char prompt[20] = "~> ";
 
 int main(void) {
@@ -78,14 +78,14 @@ int parseCommand(char *commandString) {
 	}
 	else if (strcmp(command,"date") == 0) {
 		puts("calling date function");
-//		if (arg1 == NULL) displayDate(); //if the user wants to display the date
-//		else if (strcmp(arg1,"set")) { //if the user wants to set the date
-//			if (arg2 != NULL && arg3 != NULL && arg4 != NULL) {
-//				changeDate(atoi(arg2),atoi(arg3),atoi(arg4));
-//			}
-//		} else { //invalid argument
-//			printf("Argument '%s' is not defined for %s", arg1, command);
-//		}
+		if (arg1 == NULL) displayDate(); //if the user wants to display the date
+		else if (strcmp(arg1,"set")) { //if the user wants to set the date
+			if (arg2 != NULL && arg3 != NULL && arg4 != NULL) {
+				changeDate(atoi(arg2),atoi(arg3),atoi(arg4));
+			}
+		} else { //invalid argument
+			printf("Argument '%s' is not defined for %s", arg1, command);
+		}
 	} else if (strcmp(command,"dir") == 0) {
 		puts("Calling dir function");
 	} else if (strcmp(command,"exit") == 0) {
@@ -198,58 +198,58 @@ int parseCommand(char *commandString) {
 		return -1; //failed to find error code
 	}
 
-//	void displayDate (){
-//		sys_get_date(date_p);
-//		printf("The year is : %d\n",date_p->year);
-//		printf("The month is : %d\n",date_p->month);
-//		printf("The day is : %d\n",date_p->day);
-//	}
-//
-//	void changeDate(int year, int month, int day) {
-//		int i;
-//		date_rec reset;
-//		date_rec *save_date;
-//		printf("Original date:\n");
-//		displayDate();
-//
-//		save_date->year = year;
-//		save_date->month = month;
-//		save_date->day = day;
-//
-//		if (year > 1000 || year < 2013) {
-//			if((month== 1 || month==3 || month==5 || month==7 || month== 8 || month==10 || month==12) || day>31 ) {
-//					printf("Error Encountered: 31 day error");
-//					return;
-//					}
-//			if((month== 4 || month==6 || month==9 || month==11) || day>30)  {
-//					printf("Error Encountered: 30 day error");
-//					return;
-//					}
-//			if (month == 2) {
-//					if (year%4 == 0 && day > 30) {
-//					  printf("Error Encounterd: Leap Year Error");
-//					  return;
-//					  }
-//					else if(month== 2 && day>29)    {
-//					  printf("Error Encountered: February Error");
-//					  return;
-//					  }// End else if
-//				  } //End inside if
-//			  } //End Outer if
-//		 else {
-//		  printf("Invalid Year");
-//		}
-//		i = sys_set_date(save_date);
-//		if (save_date->year  == date_p->year && save_date->month  == date_p->month && save_date->day  == date_p->day)
-//			 i= ERR_SUP_DATNCH;
-//		if ( i == ERR_SUP_INVDAT)
-//			  printf("Error Code: %d\n Invalid Date\n",ERR_SUP_INVDAT);
-//		if (i == OK)   {
-//			  printf("Date Successfully Set\n");
-//			  printf("Date after setting:\n");
-//			  displayDate();
-//			}
-//	}
+	void displayDate (){
+		sys_get_date(date_p);
+		printf("The year is : %d\n",date_p->year);
+		printf("The month is : %d\n",date_p->month);
+		printf("The day is : %d\n",date_p->day);
+	}
+
+	void changeDate(int year, int month, int day) {
+		int i;
+		date_rec reset;
+		date_rec *save_date;
+		printf("Original date:\n");
+		displayDate();
+
+		save_date->year = year;
+		save_date->month = month;
+		save_date->day = day;
+
+		if (year > 1000 || year < 2013) {
+			if((month== 1 || month==3 || month==5 || month==7 || month== 8 || month==10 || month==12) || day>31 ) {
+					printf("Error Encountered: 31 day error");
+					return;
+ 					}
+			if((month== 4 || month==6 || month==9 || month==11) || day>30)  {
+					printf("Error Encountered: 30 day error");
+					return;
+ 				}
+			if (month == 2) {
+					if (year%4 == 0 && day > 30) {
+					  printf("Error Encounterd: Leap Year Error");
+				  return;
+					  }
+					else if(month== 2 && day>29)    {
+					  printf("Error Encountered: February Error");
+					  return;
+					  }// End else if
+				  } //End inside if
+			  } //End Outer if
+		 else {
+		  printf("Invalid Year");
+		}
+		i = sys_set_date(save_date);
+		if (save_date->year  == date_p->year && save_date->month  == date_p->month && save_date->day  == date_p->day)
+			 i= ERR_SUP_DATNCH;
+		if ( i == ERR_SUP_INVDAT)
+			  printf("Error Code: %d\n Invalid Date\n",ERR_SUP_INVDAT);
+		if (i == OK)   {
+			  printf("Date Successfully Set\n");
+			  printf("Date after setting:\n");
+			  displayDate();
+			}
+	}
 
 int help(char *command){
 	if (command == NULL) {
