@@ -76,10 +76,13 @@ int parseCommand(char *commandString) {
 	else if (strcmp(command,"version") == 0) {
 		version();
 	}
+	else if (strcmp(command,"clearScreen") == 0) {
+    clrscr();
+  }
 	else if (strcmp(command,"date") == 0) {
 		puts("calling date function");
 		if (arg1 == NULL) displayDate(); //if the user wants to display the date
-		else if (strcmp(arg1,"set")) { //if the user wants to set the date
+		else if (strcmp(arg1,"set") == 0) { //if the user wants to set the date
 			if (arg2 != NULL && arg3 != NULL && arg4 != NULL) {
 				changeDate(atoi(arg2),atoi(arg3),atoi(arg4));
 			}
@@ -200,10 +203,15 @@ int parseCommand(char *commandString) {
 
 	void displayDate (){
 		sys_get_date(date_p);
-		printf("The year is : %d\n",date_p->year);
-		printf("The month is : %d\n",date_p->month);
-		printf("The day is : %d\n",date_p->day);
+		printf("%d-",date_p->year);
+		printf("%d-",date_p->month);
+		printf("%d\n",date_p->day);
 	}
+	
+	void clearScreen () {
+     clrscr();
+     return;
+     }
 
 	void changeDate(int year, int month, int day) {
 		int i;
@@ -217,21 +225,21 @@ int parseCommand(char *commandString) {
 		save_date->day = day;
 
 		if (year > 1000 || year < 2013) {
-			if((month== 1 || month==3 || month==5 || month==7 || month== 8 || month==10 || month==12) || day>31 ) {
-					printf("Error Encountered: 31 day error");
+			if((month== 1 || month==3 || month==5 || month==7 || month== 8 || month==10 || month==12) && day>31 ) {
+					printf("Error Encountered: 31 day error\n");
 					return;
  					}
 			if((month== 4 || month==6 || month==9 || month==11) || day>30)  {
-					printf("Error Encountered: 30 day error");
+					printf("Error Encountered: 30 day error\n");
 					return;
  				}
 			if (month == 2) {
 					if (year%4 == 0 && day > 30) {
-					  printf("Error Encounterd: Leap Year Error");
+					  printf("Error Encounterd: Leap Year Error\n");
 				  return;
 					  }
 					else if(month== 2 && day>29)    {
-					  printf("Error Encountered: February Error");
+					  printf("Error Encountered: February Error\n");
 					  return;
 					  }// End else if
 				  } //End inside if
@@ -267,6 +275,10 @@ int help(char *command){
 		printf("This command displays the current date. Use with argument '-set year month day' to change the date instead, where year, month, and day are all integers.\n");
 		return 0;
 	}
+	if (strcmp(command,"clearScreen") == 0) {
+    printf("This command simply clears the screen");
+    return 0;
+  }
 	if (strcmp(command,"version") == 0) {
 		printf("This command displays the current version of GeckOS.\n");
 		return 0;
