@@ -23,8 +23,8 @@
 void init();
 int parseCommand(char *commandString);
 void displayDate();
-void changeDate(int year, int month, int day);
-int help(char *command);
+void changeDate(char *year, char *month, char *day);
+void help(char *command);
 int errorCodeTranslator(int code);
 void version();
 void removeNL(char *s);
@@ -103,7 +103,7 @@ int parseCommand(char *commandString) {
 	}
 	if (strcmp(command, "setprompt") == 0) {
 		if (arg1 == NULL) puts("Prompt argument cannot be blank");
-		else if (strlen(arg1 > 20)) puts("Prompt argument must be 20 characters or less");
+		else if (strlen(arg1) > 20) puts("Prompt argument must be 20 characters or less");
 		else setPrompt(arg1);
 		return 0;
 	}
@@ -125,6 +125,7 @@ int parseCommand(char *commandString) {
 		return 0;
 	}
 	if (strcmp(command,"exit") == 0) {
+
 		return 1;
 	}
 	printf("%s is not a valid command. For a list of valid commands, type 'help'\n", command);
@@ -161,18 +162,22 @@ void clearScreen() {
  return;
 }
 
-void changeDate(char *year, char *month, char *day) {
+void changeDate(char *yearc, char *monthc, char *dayc) {
 	int i;
 	date_rec reset;
 	date_rec *save_date;
 	printf("Original date:\n");
 	displayDate();
 
-	save_date->year = atoi(year);
-	save_date->month = atoi(month);
-	save_date->day = atoi(day);
+	int year = atoi(yearc);
+	int month = atoi(monthc);
+	int day = atoi(dayc);
 
-	if (save_date->year == NULL || save_date->month == NULL || save_date->day == NULL) {
+	save_date->year = year;
+	save_date->month = month;
+	save_date->day = day;
+
+	if (year == NULL || month == NULL || day == NULL) {
 		errorCodeTranslator(ERR_SUP_INVDAT);
 		printf("Date arguments must all be Integers.\n");
 		return;
@@ -214,7 +219,7 @@ void changeDate(char *year, char *month, char *day) {
 	}
 }
 
-int help(char *command){
+void help(char *command){
 	if (command == NULL) {
 		printf("Current list of commands:\n"
 				"version : display GeckOS version\n"
