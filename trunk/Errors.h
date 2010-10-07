@@ -5,8 +5,8 @@
  *      Author: daniel
  */
 
-#ifndef ERRORS_H_
-#define ERRORS_H_
+#ifndef ERRORS
+#define ERRORS
 
 /* status and error codes */
 #define OK	0
