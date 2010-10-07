@@ -14,10 +14,70 @@
 #include <sys/types.h>
 #include <dirent.h>
 
-#include "Errors.h"
+//#include "Errors.h"
 #include "MPX_SUPT.H"
-
+//#include "Errors.h"
 #define SIZE 10000
+
+#define ERR_INV_DAY (-126)
+#define ERR_INV_MONTH (-125)
+#define ERR_INV_YEAR (-124)
+
+#define SYSTEM 1
+#define PROCESS 2
+#define RUNNING ru
+#define READY rd
+#define BLOCKED b
+#define SUSPENDED_READY sr
+#define SUSPENDED_BLOCKED sb
+
+typedef struct{
+    char stack[1024];
+}stack_area;
+
+
+typedef struct{
+    int mem_size;
+    unsigned char* load_address;
+    unsigned char* exec_address;
+}memory;
+
+typedef struct{
+    char process_name[10];
+    int priority;
+    
+    enum processclass {
+        one, 
+        two
+    }processclass;
+    
+    enum state {
+        ru, 
+        rdm, 
+        bm, 
+        sr, 
+        sb
+    }state;
+
+    stack_area process_stack_info;
+    unsigned char* stack_top;
+    unsigned char* stack_base;
+    memory process_memory_info;
+    
+}pcb;
+
+typedef struct{
+    unsigned char* queue_element;
+    unsigned char* next_queue_descriptor;
+    unsigned char* previous_queue_descriptor;
+}queue_descriptor;
+
+typedef struct{
+    int nodes;
+    unsigned char* head_queue;
+    unsigned char* tail_queue;
+}queue;
+
 
 
 void init();
@@ -133,12 +193,21 @@ int parseCommand(char *commandString) {
 }
 
 void listDir() {
+       char *command;
+       char *extension;
        if (dp != NULL) {
-           while (ep = readdir(dp))
-        	   puts(ep->d_name);
-           	   (void) closedir (dp);
-       } else
-    	   perror("Couldn't open the directory");
+	   while (ep = readdir(dp)) {
+        	   
+		   command = strtok(ep->d_name, ".");
+		   extension = strtok(NULL, ".");
+		   puts(extension);
+		   if (strcmp(extension, "mpx") == 0) {
+			puts(ep->d_name);
+		   }
+		   (void) closedir (dp);  }
+       }else
+	   perror("Couldn't open the directory");
+
 }
 
 void changeDir(DIR *arg) {
@@ -164,14 +233,17 @@ void clearScreen() {
 
 void changeDate(char *yearc, char *monthc, char *dayc) {
 	int i;
+	int year;
+	int month;
+	int day;
 	date_rec reset;
 	date_rec *save_date;
 	printf("Original date:\n");
 	displayDate();
 
-	int year = atoi(yearc);
-	int month = atoi(monthc);
-	int day = atoi(dayc);
+	year = atoi(yearc);
+	month = atoi(monthc);
+	day = atoi(dayc);
 
 	save_date->year = year;
 	save_date->month = month;
@@ -228,7 +300,7 @@ void help(char *command){
 				"clear : clears screen\n"
 				"cd : changes directory -- Does not require -arguement\n"
 				"exit : closes the system\n"
-				"setprompt : sets the prompt with the given argument");
+				"setprompt : sets the prompt with the given argument\n");
 		return;
 	}
 	if (strcmp(command,"help") == 0) {
