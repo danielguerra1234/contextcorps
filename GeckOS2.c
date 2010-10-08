@@ -16,12 +16,8 @@
 
 //#include "Errors.h"
 #include "MPX_SUPT.H"
-//#include "Errors.h"
+#include "Errors.h"
 #define SIZE 10000
-
-#define ERR_INV_DAY (-126)
-#define ERR_INV_MONTH (-125)
-#define ERR_INV_YEAR (-124)
 
 #define SYSTEM 1
 #define PROCESS 2
@@ -184,13 +180,173 @@ int parseCommand(char *commandString) {
 		listDir();
 		return 0;
 	}
+	
+	if (strcmp(command, "pcb") == 0) {
+    if (arg1 == NULL || arg2 == NULL || arg3 == NULL || arg4 == NULL) {
+      printf("createpcb requires 4 arguments name, class, priority\n");
+      return 0;
+    }
+    if (strcmp(arg1,"-c") == 0) {
+      if (arg2 != NULL && arg3 != NULL) {
+        //add function call once functions are ready
+        printf("Calling createpcb\n");
+        return 0;
+      }
+    }
+    if (strcmp(arg1, "-d") == 0) {
+      if (arg2 != NULL && arg3 != NULL) {
+        //add function call once functions are ready
+        printf("Calling deletepcb\n");
+        return 0;
+      }
+    }
+  }
+  
+  if (strcmp(command, "block") == 0) {
+    if (arg1 == NULL) {
+      printf("block command requires name argument\n");
+      return 0;
+    }
+    else {
+      //add function call when function is ready
+      printf("calling block function\n");
+      return 0;
+    }
+  }
+  
+  if (strcmp(command, "unblock") == 0) {
+    if (arg1 == NULL) {
+      printf("unblock command requires name argument\n");
+      return 0;
+    }
+    else {
+      //add function call when function is ready
+      printf("calling unblock function\n");
+      return 0;
+    }
+  }
+  
+  if (strcmp(command, "suspend") == 0) {
+    if (arg1 == NULL) {
+      printf("suspend command requires name argument\n");
+      return 0;
+    }
+    if (arg2 != NULL || arg3 != NULL || arg4 != NULL) {
+      printf("suspend command takes only 1 argument\n");
+      return 0;
+    }
+    else {
+      //add function when function is ready
+      printf("calling suspend command\n");
+    }
+  }
+  
+  if (strcmp(command, "resume") == 0) {
+    if (arg1 == NULL) {
+      printf("resume command takes name argument\n");
+      return 0;
+    }
+    if (arg2 != NULL || arg3 != NULL || arg4 || NULL) {
+      printf("resume command takes only 1 argument\n");
+      return 0;
+    }
+    else {
+      printf("calling resume command\n");
+      return 0;
+    }
+  }
+  
+  if (strcmp(command, "priority") == 0) {
+    if (arg1 == NULL) {
+      printf("priority command requires option operation -c\n");
+      return 0;
+    }
+    if (arg2 == NULL) {
+      printf("priority command requires name arugment second\n");
+      return 0;
+    }
+    if (arg3 == NULL) {
+      printf("priority command requires priority value arugment third\n");
+      return 0;
+    }
+    if (arg4 != NULL) {
+      printf("priority command takes only 3 arguments\n");
+      return 0;
+    }
+    else {
+      if (strcmp(arg1, "-s") == 0) {
+         //add function call
+         printf("calling set priority function\n");
+         return 0;
+      }
+      else {
+        printf("invalid argument\n");
+        return 0;
+      }
+    }
+  }
+  
+  if (strcmp(command, "show") == 0) {
+    if (arg1 == NULL) {
+      printf("show command requires an argument: -p(show PCB), -a(show all), -r(show ready), -b(show blocked)\n");
+      return 0;
+    }
+    if (strcmp(arg1,"-p") == 0) {
+      if (arg2 == NULL) {
+        printf("show command arguement -p requires name argument\n");
+        return 0;
+      }
+      else {
+        //add function call 
+        printf("calling show pcb function\n");
+        return 0;
+      }
+    }
+    if (strcmp(arg1, "-a") == 0) {
+      if (arg2 != NULL || arg3 != NULL || arg4 != NULL) {
+        printf("show command argument -a takes no arguments\n");
+        return 0;
+      }
+      else {
+        //add function call
+        printf("calling show with -a argument\n");
+        return 0;
+      } 
+    }
+    if (strcmp(arg1, "-r") == 0) {
+      if (arg2 != NULL || arg3 != NULL || arg4 != NULL) {
+        printf("show command argument -r takes no arguments\n");
+        return 0;
+      }
+      else {
+        printf("calling show command with -r argument\n");
+        return 0;
+      }
+    }
+    if (strcmp(arg1, "-b") == 0) {
+      if (arg2 != NULL || arg3 != NULL || arg4 != NULL) {
+        printf("show command argument -b takes no arguments\n");
+        return 0;
+      }
+      else {
+        printf("calling show command with -b argument\n");
+        return 0;
+      }
+    }
+    else{
+      printf("Argument '%s' is an invalid argument\n",arg1);
+      return 0;
+    }  
+  }
+  
+	
 	if (strcmp(command,"exit") == 0) {
 
 		return 1;
 	}
 	printf("%s is not a valid command. For a list of valid commands, type 'help'\n", command);
 	return 0;
-}
+}         
 
 void listDir() {
        char *command;
@@ -300,7 +456,14 @@ void help(char *command){
 				"clear : clears screen\n"
 				"cd : changes directory -- Does not require -arguement\n"
 				"exit : closes the system\n"
-				"setprompt : sets the prompt with the given argument\n");
+				"setprompt : sets the prompt with the given argument\n"
+        "pcb: commands pertaining to the pcb. Enter 'help pcb' to see more info\n"
+        "block: blocks the desired pcb\n"
+        "unblock: unblocks the desired pcb\n"
+        "suspend: suspends the desired pcb\n"
+        "priority: commands pertaining to pcb priority. Enter 'help priority' to see more info\n"
+        "resume: resumes the desire pcb\n"
+        "show: commands pertaining to display pcb information. Enter 'help show' for more information\n");
 		return;
 	}
 	if (strcmp(command,"help") == 0) {
@@ -335,6 +498,34 @@ void help(char *command){
 		printf("This command changes the prompt to the provided argument. The argument must be 20 characters or less\n");
 		return;
 	}
+	if (strcmp(command,"pcb") == 0) {
+    printf("This command will allow you to create or delete a pcb.  Use '-c name' for creation and '-d name' for deletion where name is the name of the pcb.\n");
+    return;
+  }
+  if (strcmp(command,"block") == 0) {
+    printf("The block command allows the user to block a pcb.  This command accepts a name for an argument.\n");
+    return 0;
+  }
+  if (strcmp(command,"unblock") == 0) {
+    printf("The unblock command allows the user to unblock a pcb.  This command accepts a name for an argument.\n");
+    return;
+  }
+  if (strcmp(command, "suspend") == 0) {
+    printf("The suspend command suspends the pcb the user specifies.  This command accepts a name for an argument.\n");
+    return;
+  }
+  if (strcmp(command, "resume") == 0) {
+    printf("The resume command resumes the pcb the user specifies. This command accepts a name for an argument.\n");
+    return;
+  }
+  if (strcmp(command, "priority") == 0) {
+    printf("This command controls the priority of a pcb.  It can be used with the '-s name priority' option.\n");
+    return;
+  }
+  if (strcmp(command, "show") == 0) {
+    printf("The show command displays information of the pcb(s).  The different options are -p(pcb) -a(all) -r(ready) -b(blocked).\n");
+    return;
+  }
 	printf("Could not find help for command: %s", command);
 }
 void version () {
