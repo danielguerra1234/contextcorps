@@ -76,8 +76,8 @@ typedef struct{
 
 typedef struct{
     int nodes;
-    unsigned char* head;
-    unsigned char* tail;
+    pcb *head;
+	pcb *tail;
 }queue;
 
 
@@ -100,6 +100,7 @@ void setPrompt(char *s);
 pcb setupPCB (char *name, int c, int p);
 pcb *allocatePcb();
 void blocked_add(pcb *node);
+void freePCB(pcb *toFree);
 
 queue *readyQ;
 queue *blockQ;
@@ -127,6 +128,12 @@ int main(void) {
 //		sys_req(READ,TERMINAL,input,inputLength); //I'll eventually figure out how this works...
 		removeNL(input);
 		exitCode = parseCommand(input);
+		if (exitCode == 1) {
+			puts("Are you sure you want to exit? (y/n)");
+			fgets(input,*lengthPtr,stdin);
+			removeNL(input);
+			if (strcmp(input,"N") == 0 || strcmp(input,"n") == 0 || strcmp(input,"No") == 0 || strcmp(input,"no") == 0 || strcmp(input,"NO") == 0) exitCode = 0;
+		}
 	} while (exitCode == 0);
 	if (exitCode != 1) errorCodeTranslator(exitCode);
 	terminate();
@@ -147,64 +154,59 @@ void init() {
 //#############Queue Functions#################
 
 void blocked_add(pcb *node) {
-        if (blockQ->nodes == 0) {
-          blockQ->head = node;
-          blockQ->tail = node;
-          node->next = NULL;
-          node->prev = NULL;
-          blockQ->nodes = 1;
-        }
-        if (readyQ->nodes != 0) {
-          pcb *current;
-          current = blockQ->head;
+    if (blockQ->nodes == 0) {
+		blockQ->head = node;
+		blockQ->tail = node;
+		node->next = NULL;
+        node->prev = NULL;
+        blockQ->nodes = 1;
+    }
+    if (readyQ->nodes != 0) {
+        pcb *current;
+		current = blockQ->head;
           
-          if (current->priority > node->priority) {
-            current = current->next;
-          }
-          else if (current->priority < node->priority) {
-            print "start here";
-          } 
-            
-          
-        }
-        
-        
-      
+        if (current->priority > node->priority) {
+			current = current->next;
+		}
+		else if (current->priority < node->priority) {
+			puts("start here");
+        } 
+    }
 }
 
 //############PCB Functions####################
 
 pcb *allocatePcb(){
-	      int size = sizeof(pcb);
-        int *address;
-        pcb *pcb_ptr;
-        
-        pcb_ptr= sys_alloc_mem(size);//use sys_alloc_mem
-        address=sys_alloc_mem(1024);
-	      pcb_ptr->stack_base = address;
-        pcb_ptr->stack_top = pcb_ptr->stack_base + size;
-        return (&pcb_ptr);
-}   
+	int size = sizeof(pcb);
+	int *address;
+	pcb *pcb_ptr;
+	
+	pcb_ptr = sys_alloc_mem(size);//use sys_alloc_mem
+	address = sys_alloc_mem(1024);
+	pcb_ptr->stack_base = address;
+	pcb_ptr->stack_top = pcb_ptr->stack_base + size;
+	return (&pcb_ptr);
+}
 
 pcb setupPCB (char *name, int c, int p) {
-        pcb *newPcb;
-         if (p < -128 || p > 127) {
-          printf("Priority is out of range.  Must be between -127 to 128.\n");
-          return;
-         }
-         if (c != SYSTEM || c != APPLICATION ) {
-          printf("Error: %i is invalid", c);
-          return;
-         }
+	pcb *newPcb;
+	 if (p < -128 || p > 127) {
+		printf("Priority is out of range.  Must be between -127 to 128.\n");
+		return;
+	 }
+	 if (c != SYSTEM || c != APPLICATION ) {
+		printf("Error: %i is invalid", c);
+		return;
+	 }
 
-         newPcb = allocatePcb();
+	 newPcb = allocatePcb();
 
-         newPcb->process_name = *name;
-         newPcb->priority = p;
-         newPcb->process_class = c;
-         newPcb->state = 0;
+	 newPcb->process_name = *name;
+	 newPcb->priority = p;
+	 newPcb->process_class = c;
+	 newPcb->state = 0;
 
-         return *newPcb;      
+	 return *newPcb;
 }
  /*
 pcb insertPcb (pcb *name) {
@@ -273,25 +275,31 @@ int parseCommand(char *commandString) {
 	}
 	
 	if (strcmp(command, "pcb") == 0) {
-    if (arg1 == NULL || arg2 == NULL || arg3 == NULL || arg4 == NULL) {
-      printf("createpcb requires 4 arguments name, class, priority\n");
-      return 0;
+		if (arg1 == NULL) {
+			puts("You must define whether you are creating(-c) or deleting(-d) a pcb");
+			return 0;
+		}
+		if (strcmp(arg1,"-c") == 0) {
+			if(arg2 == NULL || arg3 == NULL || arg4 == NULL) {
+				printf("Creating a pcb requires 3 arguments:  name, class, priority\n");
+				return 0;
+			} else {
+				//add function call once functions are ready
+				printf("Creating a pcb\nName: %s\nClass: %s\nPriority: %s\n",arg2,arg3,arg4);
+				return 0;
+			}
+		}
+		if (strcmp(arg1, "-d") == 0) {
+		  if (arg2 == NULL) {
+			puts("Deleting a pcb requires a name");
+			return 0;
+			} else {
+				//add function call once functions are ready
+				printf("Deleting pcb '%s'\n",arg2);
+				return 0;
+			}
+		}
     }
-    if (strcmp(arg1,"-c") == 0) {
-      if (arg2 != NULL && arg3 != NULL) {
-        //add function call once functions are ready
-        printf("Calling createpcb\n");
-        return 0;
-      }
-    }
-    if (strcmp(arg1, "-d") == 0) {
-      if (arg2 != NULL && arg3 != NULL) {
-        //add function call once functions are ready
-        printf("Calling deletepcb\n");
-        return 0;
-      }
-    }
-  }
   
   if (strcmp(command, "block") == 0) {
     if (arg1 == NULL) {
@@ -300,49 +308,41 @@ int parseCommand(char *commandString) {
     }
     else {
       //add function call when function is ready
-      printf("calling block function\n");
+      printf("blocking %s\n",arg1);
       return 0;
     }
   }
   
   if (strcmp(command, "unblock") == 0) {
     if (arg1 == NULL) {
-      printf("unblock command requires name argument\n");
+      printf("Unblock command requires a name\n");
       return 0;
     }
     else {
       //add function call when function is ready
-      printf("calling unblock function\n");
+      printf("Unblocking %s\n",arg1);
       return 0;
     }
   }
   
   if (strcmp(command, "suspend") == 0) {
     if (arg1 == NULL) {
-      printf("suspend command requires name argument\n");
-      return 0;
-    }
-    if (arg2 != NULL || arg3 != NULL || arg4 != NULL) {
-      printf("suspend command takes only 1 argument\n");
+      printf("Suspend requires a name\n");
       return 0;
     }
     else {
       //add function when function is ready
-      printf("calling suspend command\n");
+      printf("Suspending %s\n",arg1);
     }
   }
   
   if (strcmp(command, "resume") == 0) {
     if (arg1 == NULL) {
-      printf("resume command takes name argument\n");
-      return 0;
-    }
-    if (arg2 != NULL || arg3 != NULL || arg4 || NULL) {
-      printf("resume command takes only 1 argument\n");
+      printf("Resume requires a name\n");
       return 0;
     }
     else {
-      printf("calling resume command\n");
+      printf("Resuming %s\n",arg1);
       return 0;
     }
   }
@@ -432,7 +432,6 @@ int parseCommand(char *commandString) {
   
 	
 	if (strcmp(command,"exit") == 0) {
-
 		return 1;
 	}
 	printf("%s is not a valid command. For a list of valid commands, type 'help'\n", command);
