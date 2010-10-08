@@ -150,9 +150,13 @@ void init() {
 	clearScreen();
 	puts(greeting);
 	dp = opendir ("./");
-	sys_init(MODULE_R1);
+	sys_init(MODULE_R2);
 	readyQ->nodes = 0;
+	readyQ->head = NULL;
+	readyQ->tail = NULL;
 	blockQ->nodes = 0;
+	blockQ->head = NULL;
+	blockQ->tail = NULL;
 }
 
 //#############Queue Functions#################
@@ -198,30 +202,46 @@ void Free_PCB(pcb *ptr){ //pcb pointer
 
 }
    
-pcb* Setup_PCB(char *name, char *priorityc, char *classc){
- pcb * pcb1;
- int priority = atoi(priorityc);
- int class = atoi(classc);
- if (strlen(name) > 15) {
-	puts("Name is too long");
-	return;
- }
- if (Find_PCB(name) == NULL || (priority >127 || priority<-128) || (class!= 1 || class!= 2))
- {
-  printf("INVALID PARAMETERS");
-  return; 
- } 
- else 
-  pcb1= allocatePcb();
-  pcb1->process_name= name;
-  pcb1->priority= priority;
-  pcb1->process_class= class;
-  pcb1->state= 1;
- return pcb1;
+pcb* Setup_PCB(char *name, char *priorityc, char *classc) {
+	pcb * pcb1;
+	int priority = atoi(priorityc);
+	int class = atoi(classc);
+	if (name == NULL) {
+		printf("You must supply a name\n");
+		return;
+	}
+	if (strlen(name) > 15) {
+		printf("Name is too long\n");
+		return;
+	}
+	if (Find_PCB(name) != NULL) {
+		printf("Name already exists\n");
+		return;
+	}
+	if(priority >127 || priority<-128) {
+		printf("Priority must be between -128 and 127\n");
+		return;
+	}
+	if (class!= 1 && class!= 2) {
+		printf("You must supply a class number\n");
+		return;
+	}
+	pcb1= allocatePcb();
+	pcb1->process_name= name;
+	pcb1->priority= priority;
+	pcb1->process_class= class;
+	pcb1->state= 1;
+	printf("PCB succesfully created");
+	return pcb1;
 }
 
 pcb* Find_PCB(char *name){
-	 pcb *walk;
+	 pcb *walk = readyQ->head;
+	 while(walk != NULL) {
+		if (strcmp(walk->process_name,name)) return walk;
+		if (walk->next != NULL) walk = walk->next;
+	}
+	walk = blockQ->head;
 	 while(walk != NULL) {
 		if (strcmp(walk->process_name,name)) return walk;
 		if (walk->next != NULL) walk = walk->next;
@@ -647,9 +667,9 @@ void help(char *command){
 	printf("Could not find help for command: %s", command);
 }
 void version () {
-	printf("This is the version #1.0.23 of GeckOs\n");
-	printf("Module #R1\n");
-	printf("Last Modified: 09/17/2010\n");
+	printf("This is the version #1.1.33 of GeckOs\n");
+	printf("Module #R2\n");
+	printf("Last Modified: 10/08/2010\n");
 }
 
 void removeNL(char *s) {
