@@ -21,6 +21,7 @@
 
 #define SYSTEM 1
 #define PROCESS 2
+#define APPLICATION 3
 #define RUNNING ru
 #define READY rd
 #define BLOCKED b
@@ -39,13 +40,13 @@ typedef struct{
 }memory;
 
 typedef struct{
-    char process_name[10];
+    char *process_name;
     int priority;
     
     enum processclass {
         one, 
         two
-    }processclass;
+    }process_class;
     
     enum state {
         ru, 
@@ -56,8 +57,13 @@ typedef struct{
     }state;
 
     stack_area process_stack_info;
+    
+    struct pcb *next;
+    struct pcb *prev;
+    
     unsigned char* stack_top;
     unsigned char* stack_base;
+    
     memory process_memory_info;
     
 }pcb;
@@ -70,9 +76,10 @@ typedef struct{
 
 typedef struct{
     int nodes;
-    unsigned char* head_queue;
-    unsigned char* tail_queue;
+    unsigned char* head;
+    unsigned char* tail;
 }queue;
+
 
 
 
@@ -90,6 +97,13 @@ void listDir();
 void dmd();
 void changeDir(DIR *arg);
 void setPrompt(char *s);
+pcb setupPCB (char *name, int c, int p);
+pcb *allocatePcb();
+void blocked_add(pcb *node);
+
+queue *readyQ;
+queue *blockQ;
+//blockQ->nodes = 0;
 
 long buffer_length = 100;
 unsigned char buffer[SIZE];
@@ -126,7 +140,84 @@ void init() {
 	puts(greeting);
 	dp = opendir ("./");
 	sys_init(MODULE_R1);
+	readyQ->nodes = 0;
+	blockQ->nodes = 0;
 }
+
+//#############Queue Functions#################
+
+void blocked_add(pcb *node) {
+        if (blockQ->nodes == 0) {
+          blockQ->head = node;
+          blockQ->tail = node;
+          node->next = NULL;
+          node->prev = NULL;
+          blockQ->nodes = 1;
+        }
+        if (readyQ->nodes != 0) {
+          pcb *current;
+          current = blockQ->head;
+          
+          if (current->priority > node->priority) {
+            current = current->next;
+          }
+          else if (current->priority < node->priority) {
+            print "start here";
+          } 
+            
+          
+        }
+        
+        
+      
+}
+
+//############PCB Functions####################
+
+pcb *allocatePcb(){
+	      int size = sizeof(pcb);
+        int *address;
+        pcb *pcb_ptr;
+        
+        pcb_ptr= sys_alloc_mem(size);//use sys_alloc_mem
+        address=sys_alloc_mem(1024);
+	      pcb_ptr->stack_base = address;
+        pcb_ptr->stack_top = pcb_ptr->stack_base + size;
+        return (&pcb_ptr);
+}   
+
+pcb setupPCB (char *name, int c, int p) {
+        pcb *newPcb;
+         if (p < -128 || p > 127) {
+          printf("Priority is out of range.  Must be between -127 to 128.\n");
+          return;
+         }
+         if (c != SYSTEM || c != APPLICATION ) {
+          printf("Error: %i is invalid", c);
+          return;
+         }
+
+         newPcb = allocatePcb();
+
+         newPcb->process_name = *name;
+         newPcb->priority = p;
+         newPcb->process_class = c;
+         newPcb->state = 0;
+
+         return *newPcb;      
+}
+ /*
+pcb insertPcb (pcb *name) {
+       if (pcb->state = rd || pcb->state = sr) {
+          while (queue->head != NULL) {
+            if 
+          }
+       
+       }
+}
+ */
+
+
 
 //NOTE: a return value other than 0 will result in program exit
 int parseCommand(char *commandString) {
