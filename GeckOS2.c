@@ -14,7 +14,6 @@
 #include <sys/types.h>
 #include <dirent.h>
 
-//#include "Errors.h"
 #include "MPX_SUPT.H"
 #include "Errors.h"
 #define SIZE 10000
@@ -30,6 +29,8 @@
 
 typedef struct{
     char stack[1024];
+	unsigned char *stack_top;
+	unsigned char *stack_base;
 }stack_area;
 
 
@@ -42,30 +43,32 @@ typedef struct{
 typedef struct{
     char *process_name;
     int priority;
-    
+
     enum processclass {
-        one, 
-        two
+	one,
+	two
     }process_class;
-    
+
     enum state {
-        ru, 
-        rdm, 
-        bm, 
-        sr, 
-        sb
+	ru,
+	rdm,
+	bm,
+	sr,
+	sb
     }state;
 
     stack_area process_stack_info;
-    
+
+    unsigned char* next_one;
+
     struct pcb *next;
     struct pcb *prev;
-    
+
     unsigned char* stack_top;
     unsigned char* stack_base;
-    
+
     memory process_memory_info;
-    
+
 }pcb;
 
 typedef struct{
@@ -77,7 +80,7 @@ typedef struct{
 typedef struct{
     int nodes;
     pcb *head;
-	pcb *tail;
+    pcb *tail;
 }queue;
 
 
@@ -97,10 +100,11 @@ void listDir();
 void dmd();
 void changeDir(DIR *arg);
 void setPrompt(char *s);
-pcb setupPCB (char *name, int c, int p);
 pcb *allocatePcb();
 void blocked_add(pcb *node);
-void freePCB(pcb *toFree);
+void Free_PCB(pcb *ptr);
+pcb* Setup_PCB(char *name, char *priorityc, char *classc);
+pcb* Find_PCB(char *name);
 
 queue *readyQ;
 queue *blockQ;
@@ -188,26 +192,49 @@ pcb *allocatePcb(){
 	return (&pcb_ptr);
 }
 
-pcb setupPCB (char *name, int c, int p) {
-	pcb *newPcb;
-	 if (p < -128 || p > 127) {
-		printf("Priority is out of range.  Must be between -127 to 128.\n");
-		return;
-	 }
-	 if (c != SYSTEM || c != APPLICATION ) {
-		printf("Error: %i is invalid", c);
-		return;
-	 }
+void Free_PCB(pcb *ptr){ //pcb pointer
+ sys_free_mem(ptr->stack_base);
+ sys_free_mem(ptr);
 
-	 newPcb = allocatePcb();
-
-	 newPcb->process_name = *name;
-	 newPcb->priority = p;
-	 newPcb->process_class = c;
-	 newPcb->state = 0;
-
-	 return *newPcb;
 }
+   
+pcb* Setup_PCB(char *name, char *priorityc, char *classc){
+ pcb * pcb1;
+ int priority = atoi(priorityc);
+ int class = atoi(classc);
+ if (strlen(name) > 15) {
+	puts("Name is too long");
+	return;
+ }
+ if (Find_PCB(name) == NULL || (priority >127 || priority<-128) || (class!= 1 || class!= 2))
+ {
+  printf("INVALID PARAMETERS");
+  return; 
+ } 
+ else 
+  pcb1= allocatePcb();
+  pcb1->process_name= name;
+  pcb1->priority= priority;
+  pcb1->process_class= class;
+  pcb1->state= 1;
+ return pcb1;
+}
+
+pcb* Find_PCB(char *name){
+	 pcb *walk;
+	 while(walk != NULL) {
+		if (strcmp(walk->process_name,name)) return walk;
+		if (walk->next != NULL) walk = walk->next;
+	}
+	return NULL;
+}
+ //for (walk=queue->head; walk=queue->tail; walk=walk->next_one) {
+//	if(walk->process_name= name)
+//		return walk;
+//	else 
+//		return NULL;
+// }  
+//}
  /*
 pcb insertPcb (pcb *name) {
        if (pcb->state = rd || pcb->state = sr) {
@@ -286,6 +313,7 @@ int parseCommand(char *commandString) {
 			} else {
 				//add function call once functions are ready
 				printf("Creating a pcb\nName: %s\nClass: %s\nPriority: %s\n",arg2,arg3,arg4);
+				Setup_PCB(arg2,arg3,arg4);
 				return 0;
 			}
 		}
@@ -294,8 +322,8 @@ int parseCommand(char *commandString) {
 			puts("Deleting a pcb requires a name");
 			return 0;
 			} else {
-				//add function call once functions are ready
 				printf("Deleting pcb '%s'\n",arg2);
+				Free_PCB(Find_PCB(arg2));
 				return 0;
 			}
 		}
