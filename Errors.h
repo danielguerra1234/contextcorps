@@ -37,4 +37,13 @@
 #define ERR_INV_YEAR   (-125) //invalid year
 #define ERR_INV_DAY    (-126) //invalid day
 
+//Queue Error Codes
+
+//PCB Error Codes
+#define ERR_PCB_NMETOLNG 	(-400) //Name too long
+#define ERR_PCB_NONAME   	(-401) //No name supplied
+#define ERR_PCB_NMEEXISTS	(-402) //Name already exists
+#define ERR_PCB_INVPRIORITY	(-403) //Invalid Priority
+#define ERR_PCB_INVCLASS	(-404) //Invalid Class
+
 #endif /* ERRORS_H_ */

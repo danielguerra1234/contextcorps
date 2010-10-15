@@ -90,8 +90,7 @@ void init();
 int parseCommand(char *commandString);
 void displayDate();
 void changeDate(char *year, char *month, char *day);
-void help(char *command);
-int errorCodeTranslator(int code);
+//int errorCodeTranslator(int code);
 void version();
 void removeNL(char *s);
 void terminate();
@@ -100,15 +99,21 @@ void listDir();
 void dmd();
 void changeDir(DIR *arg);
 void setPrompt(char *s);
+
+//PCB PROTOTYPES
 pcb *allocatePcb();
 void blocked_add(pcb *node);
 void Free_PCB(pcb *ptr);
 pcb* Setup_PCB(char *name, char *priorityc, char *classc);
 pcb* Find_PCB(char *name);
+void Insert_PCB(int, queue);
+void Remove_PCB(pcb*);
 
+//Global Variables
 queue *readyQ;
 queue *blockQ;
-//blockQ->nodes = 0;
+queue *suspendreadyQ;
+queue *suspendblockQ;
 
 long buffer_length = 100;
 unsigned char buffer[SIZE];
@@ -151,16 +156,26 @@ void init() {
 	puts(greeting);
 	dp = opendir ("./");
 	sys_init(MODULE_R2);
+
 	readyQ->nodes = 0;
 	readyQ->head = NULL;
 	readyQ->tail = NULL;
+
 	blockQ->nodes = 0;
 	blockQ->head = NULL;
 	blockQ->tail = NULL;
+
+	suspendreadyQ->nodes = 0;
+	suspendreadyQ->head = NULL;
+	suspendreadyQ->tail = NULL;
+
+	suspendblockQ->nodes = 0;
+	suspendblockQ->head = NULL;
+	suspendblockQ->tail = NULL;
 }
 
 //#############Queue Functions#################
-
+//Queue function error codes start in the 300
 void blocked_add(pcb *node) {
     if (blockQ->nodes == 0) {
 		blockQ->head = node;
@@ -183,7 +198,7 @@ void blocked_add(pcb *node) {
 }
 
 //############PCB Functions####################
-
+//PCB error codes start in the 400
 pcb *allocatePcb(){
 	int size = sizeof(pcb);
 	int *address;
@@ -196,7 +211,7 @@ pcb *allocatePcb(){
 	return (&pcb_ptr);
 }
 
-void Free_PCB(pcb *ptr){ //pcb pointer
+void Free_PCB(pcb *ptr) { //pcb pointer
  sys_free_mem(ptr->stack_base);
  sys_free_mem(ptr);
 
@@ -207,23 +222,23 @@ pcb* Setup_PCB(char *name, char *priorityc, char *classc) {
 	int priority = atoi(priorityc);
 	int class = atoi(classc);
 	if (name == NULL) {
-		printf("You must supply a name\n");
+		errorCodeTranslator(ERR_PCB_NONAME);
 		return;
 	}
 	if (strlen(name) > 15) {
-		printf("Name is too long\n");
+		errorCodeTranslator(ERR_PCB_NMETOLONG);
 		return;
 	}
 	if (Find_PCB(name) != NULL) {
-		printf("Name already exists\n");
+		errorCodeTranslator(ERR_PCB_NMEEXISTS);
 		return;
 	}
 	if(priority >127 || priority<-128) {
-		printf("Priority must be between -128 and 127\n");
+		errorCodeTranslator(ERR_PCB_INVPRIORITY);
 		return;
 	}
 	if (class!= 1 && class!= 2) {
-		printf("You must supply a class number\n");
+		errorCodeTranslator(ERR_PCB_INVCLASS);
 		return;
 	}
 	pcb1= allocatePcb();
@@ -238,34 +253,16 @@ pcb* Setup_PCB(char *name, char *priorityc, char *classc) {
 pcb* Find_PCB(char *name){
 	 pcb *walk = readyQ->head;
 	 while(walk != NULL) {
-		if (strcmp(walk->process_name,name)) return walk;
+		if (strcmp(walk->process_name,name) == 0) return walk;
 		if (walk->next != NULL) walk = walk->next;
 	}
 	walk = blockQ->head;
 	 while(walk != NULL) {
-		if (strcmp(walk->process_name,name)) return walk;
+		if (strcmp(walk->process_name,name) == 0) return walk;
 		if (walk->next != NULL) walk = walk->next;
 	}
 	return NULL;
 }
- //for (walk=queue->head; walk=queue->tail; walk=walk->next_one) {
-//	if(walk->process_name= name)
-//		return walk;
-//	else 
-//		return NULL;
-// }  
-//}
- /*
-pcb insertPcb (pcb *name) {
-       if (pcb->state = rd || pcb->state = sr) {
-          while (queue->head != NULL) {
-            if 
-          }
-       
-       }
-}
- */
-
 
 
 //NOTE: a return value other than 0 will result in program exit
@@ -583,88 +580,6 @@ void changeDate(char *yearc, char *monthc, char *dayc) {
 		  printf("Date successfully set to:\n");
 		  displayDate();
 	}
-}
-
-void help(char *command){
-	if (command == NULL) {
-		printf("Current list of commands:\n"
-				"version : display GeckOS version\n"
-				"date : display or set date. Enter 'help date' to see more info'\n"
-				"dir : displays the current director of GeckOS\n"
-				"clear : clears screen\n"
-				"cd : changes directory -- Does not require -arguement\n"
-				"exit : closes the system\n"
-				"setprompt : sets the prompt with the given argument\n"
-        "pcb: commands pertaining to the pcb. Enter 'help pcb' to see more info\n"
-        "block: blocks the desired pcb\n"
-        "unblock: unblocks the desired pcb\n"
-        "suspend: suspends the desired pcb\n"
-        "priority: commands pertaining to pcb priority. Enter 'help priority' to see more info\n"
-        "resume: resumes the desire pcb\n"
-        "show: commands pertaining to display pcb information. Enter 'help show' for more information\n");
-		return;
-	}
-	if (strcmp(command,"help") == 0) {
-		printf("Congrats, you've figured out how this command works! Now use it on something useful.\n");
-		return;
-	}
-	if (strcmp(command,"date") == 0) {
-		printf("This command displays the current date. Use with argument 'set year month day' to change the date instead, where year, month, and day are all integers.\n");
-		return;
-	}
-	if (strcmp(command,"cd") == 0) {
-		printf("Changes the directory\n");
-		return;
-	}
-	if (strcmp(command,"clear") == 0) {
-		printf("This command simply clears the screen\n");
-		return;
-	}
-	if (strcmp(command,"version") == 0) {
-		printf("This command displays the current version of GeckOS.\n");
-		return;
-	}
-	if (strcmp(command,"dir") == 0) {
-		printf("This command displays information about all the files: typically the name and size in bytes\n");
-		return;
-	}
-	if (strcmp(command,"exit") == 0) {
-		printf("This command closes the program\n");
-		return;
-	}
-	if (strcmp(command,"setprompt") == 0) {
-		printf("This command changes the prompt to the provided argument. The argument must be 20 characters or less\n");
-		return;
-	}
-	if (strcmp(command,"pcb") == 0) {
-    printf("This command will allow you to create or delete a pcb.  Use '-c name' for creation and '-d name' for deletion where name is the name of the pcb.\n");
-    return;
-  }
-  if (strcmp(command,"block") == 0) {
-    printf("The block command allows the user to block a pcb.  This command accepts a name for an argument.\n");
-    return 0;
-  }
-  if (strcmp(command,"unblock") == 0) {
-    printf("The unblock command allows the user to unblock a pcb.  This command accepts a name for an argument.\n");
-    return;
-  }
-  if (strcmp(command, "suspend") == 0) {
-    printf("The suspend command suspends the pcb the user specifies.  This command accepts a name for an argument.\n");
-    return;
-  }
-  if (strcmp(command, "resume") == 0) {
-    printf("The resume command resumes the pcb the user specifies. This command accepts a name for an argument.\n");
-    return;
-  }
-  if (strcmp(command, "priority") == 0) {
-    printf("This command controls the priority of a pcb.  It can be used with the '-s name priority' option.\n");
-    return;
-  }
-  if (strcmp(command, "show") == 0) {
-    printf("The show command displays information of the pcb(s).  The different options are -p(pcb) -a(all) -r(ready) -b(blocked).\n");
-    return;
-  }
-	printf("Could not find help for command: %s", command);
 }
 void version () {
 	printf("This is the version #1.1.33 of GeckOs\n");
