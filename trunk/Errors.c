@@ -113,6 +113,27 @@ int errorCodeTranslator(int code) {
 	case (-126):
 		  printf("Invalid Day\n");
 		  return 0;
+
+	case (-400):
+		  printf("Name is too long\n");
+		  return 0;
+
+	case (-401):
+		  printf("You must supply a name\n");
+		  return 0;
+
+	case (-402):
+		  printf("Name already exists, choose a different one\n");
+		  print 0;
+
+	case (-403):
+		  printf("Invalid priority: must be between -128 to 127\n");
+		  return 0;
+
+	case (-404):
+		  printf("Must supply a class number: 1 or 2\n");
+		  return 0;
+
 	}
 	printf("\nFATAL ERROR: error code supplied was not found!\n");
 	return -1; //failed to find error code
