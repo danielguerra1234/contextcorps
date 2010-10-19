@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <stdio.h>
+
 void help(char *command){
 	if (command == NULL) {
 		printf("Current list of commands:\n"

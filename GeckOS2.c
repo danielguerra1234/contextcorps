@@ -81,7 +81,7 @@ typedef struct{
     int nodes;
     pcb *head;
     pcb *tail;
-    int index;
+    pcb *index;
 }queue;
 
 
@@ -109,6 +109,13 @@ pcb* Setup_PCB(char *name, char *priorityc, char *classc);
 pcb* Find_PCB(char *name);
 void Insert_PCB(int, queue);
 void Remove_PCB(pcb*);
+void Set_Priority(char*, int);
+
+//Show Functions
+void Show_PCB(char*);
+void Show_All();
+void Show_Ready();
+void Show_Blocked();
 
 //Global Variables
 queue *readyQ;
@@ -203,19 +210,19 @@ void blocked_add(pcb *node) {
 }
 
 pcb* getNext(queue *q) {
-	if (queue->head == NULL) return null; //if no head, then no pcb in queue
-	if (queue->index == NULL) queue->index = queue->head; //set initial position
-	else if (queue->index->next == NULL) queue->index = queue->head //if at end of queue, start at beginning
-	else queue->index = queue->index->next; //change to next element
-	return queue->index;
+	if (q->head == NULL) return NULL; //if no head, then no pcb in queue
+	if (q->index == NULL) q->index = q->head; //set initial position
+	else if (q->index->next == NULL) q->index = q->head; //if at end of queue, start at beginning
+	else q->index = q->index->next; //change to next element
+	return q->index;
 }
 
 pcb* getPrevious(queue *q) {
-	if (queue->head == NULL) return null; //if no head, then no pcb in queue
-	if (queue->index == NULL) queue->index = queue->head; //set initial position
-	else if (queue->index->previous == NULL) queue->index = queue->tail //if at beginning of queue, start at end
-	else queue->index = queue->index->prev; //change to previous element
-	return queue->index;
+	if (q->head == NULL) return NULL; //if no head, then no pcb in queue
+	if (q->index == NULL) q->index = q->head; //set initial position
+	else if (q->index->prev == NULL) q->index = q->tail; //if at beginning of queue, start at end
+	else q->index = q->index->prev; //change to previous element
+	return q->index;
 }
 
 //############PCB Functions####################
@@ -267,7 +274,8 @@ pcb* Setup_PCB(char *name, char *priorityc, char *classc) {
 	pcb1->priority= priority;
 	pcb1->process_class= class;
 	pcb1->state= 1;
-	printf("PCB succesfully created");
+	printf("PCB succesfully created\n");
+	readyQ->head = pcb1;
 	return pcb1;
 }
 
@@ -285,6 +293,27 @@ pcb* Find_PCB(char *name){
 	return NULL;
 }
 
+void Set_Priority(char* name, int p) {
+  pcb* procB;
+  procB = Find_PCB(name);
+  procB->priority = p;
+  return;  
+}
+
+void Show_PCB(char* name) {
+  pcb* pcbPtr;
+  pcbPtr = Find_PCB(name);
+  if (pcbPtr == NULL) {
+    printf("PCB: %s does not exist.\n",name);
+    return;
+  } else {
+    printf("Name: %s\n" 
+            "Priority: %d\n" 
+            "Process_Class: %s\n" 
+            "State: %s\n",pcbPtr->process_name, pcbPtr->priority, pcbPtr->process_class, pcbPtr->state);
+    return;
+  }
+}
 
 //NOTE: a return value other than 0 will result in program exit
 int parseCommand(char *commandString) {
@@ -365,6 +394,16 @@ int parseCommand(char *commandString) {
 				return 0;
 			}
 		}
+		if (strcmp(arg1, "-s") == 0) {
+      if (arg2 == NULL || arg3 == NULL) {
+        puts("Set Priority function requires PCB name and new priority.\n");
+      } else {
+        printf("Setting new priority:%d for PCB:%s",arg2,arg3);
+        Set_Priority(arg2, atoi(arg3));
+        return;
+      }
+      
+    }
     }
   
   if (strcmp(command, "block") == 0) {
@@ -456,6 +495,7 @@ int parseCommand(char *commandString) {
       else {
         //add function call 
         printf("calling show pcb function\n");
+        Show_PCB(arg2);
         return 0;
       }
     }
