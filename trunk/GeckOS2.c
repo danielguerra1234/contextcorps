@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <conio.h>
 #include <dirent.h>
 
 #include "MPX_SUPT.H"
@@ -142,6 +143,15 @@ int main(void) {
 	do {
 		printf("%s ", prompt);
 		fgets(input,*lengthPtr,stdin);
+		if (kbhit()) {
+      switch(getch()) {
+        case 2:
+          printf("Up Key Pressed");
+      
+        case 27:
+          exit(0);
+          }
+    }
 //		sys_req(READ,TERMINAL,input,inputLength); //I'll eventually figure out how this works...
 		removeNL(input);
 		exitCode = parseCommand(input);
@@ -272,15 +282,20 @@ pcb* Setup_PCB(char *name, char *priorityc, char *classc) {
 	pcb1= allocatePcb();
 	pcb1->process_name= name;
 	pcb1->priority= priority;
-	pcb1->process_class= class;
+	pcb1->process_class= classc;
 	pcb1->state= 1;
 	printf("PCB succesfully created\n");
 	readyQ->head = pcb1;
+	Show_PCB(name);
 	return pcb1;
 }
 
 pcb* Find_PCB(char *name){
 	 pcb *walk = readyQ->head;
+	 if (walk == NULL) {
+    printf("walk is null\n");
+    return;
+    }
 	 while(walk != NULL) {
 		if (strcmp(walk->process_name,name) == 0) return walk;
 		if (walk->next != NULL) walk = walk->next;
@@ -302,7 +317,7 @@ void Set_Priority(char* name, int p) {
 
 void Show_PCB(char* name) {
   pcb* pcbPtr;
-  pcbPtr = Find_PCB(name);
+  //pcbPtr = Find_PCB(name);
   if (pcbPtr == NULL) {
     printf("PCB: %s does not exist.\n",name);
     return;
@@ -379,7 +394,7 @@ int parseCommand(char *commandString) {
 				return 0;
 			} else {
 				//add function call once functions are ready
-				printf("Creating a pcb\nName: %s\nClass: %s\nPriority: %s\n",arg2,arg3,arg4);
+				//printf("Creating a pcb\nName: %s\nClass: %s\nPriority: %s\n",arg2,arg3,arg4);
 				Setup_PCB(arg2,arg3,arg4);
 				return 0;
 			}
