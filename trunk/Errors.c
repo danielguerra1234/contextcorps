@@ -124,7 +124,7 @@ int errorCodeTranslator(int code) {
 
 	case (-402):
 		  printf("Name already exists, choose a different one\n");
-		  print 0;
+		  return 0;
 
 	case (-403):
 		  printf("Invalid priority: must be between -128 to 127\n");
