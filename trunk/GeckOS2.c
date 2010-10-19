@@ -81,6 +81,7 @@ typedef struct{
     int nodes;
     pcb *head;
     pcb *tail;
+    int index;
 }queue;
 
 
@@ -160,18 +161,22 @@ void init() {
 	readyQ->nodes = 0;
 	readyQ->head = NULL;
 	readyQ->tail = NULL;
+	readyQ->index = NULL;
 
 	blockQ->nodes = 0;
 	blockQ->head = NULL;
 	blockQ->tail = NULL;
+	blockQ->index = NULL;
 
 	suspendreadyQ->nodes = 0;
 	suspendreadyQ->head = NULL;
 	suspendreadyQ->tail = NULL;
+	suspendreadyQ->index = NULL;
 
 	suspendblockQ->nodes = 0;
 	suspendblockQ->head = NULL;
 	suspendblockQ->tail = NULL;
+	suspendblockQ->index = NULL;
 }
 
 //#############Queue Functions#################
@@ -195,6 +200,22 @@ void blocked_add(pcb *node) {
 			puts("start here");
         } 
     }
+}
+
+pcb* getNext(queue *q) {
+	if (queue->head == NULL) return null; //if no head, then no pcb in queue
+	if (queue->index == NULL) queue->index = queue->head; //set initial position
+	else if (queue->index->next == NULL) queue->index = queue->head //if at end of queue, start at beginning
+	else queue->index = queue->index->next; //change to next element
+	return queue->index;
+}
+
+pcb* getPrevious(queue *q) {
+	if (queue->head == NULL) return null; //if no head, then no pcb in queue
+	if (queue->index == NULL) queue->index = queue->head; //set initial position
+	else if (queue->index->previous == NULL) queue->index = queue->tail //if at beginning of queue, start at end
+	else queue->index = queue->index->prev; //change to previous element
+	return queue->index;
 }
 
 //############PCB Functions####################
