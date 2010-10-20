@@ -108,8 +108,8 @@ void blocked_add(pcb *node);
 void Free_PCB(pcb *ptr);
 pcb* Setup_PCB(char *name, char *priorityc, char *classc);
 pcb* Find_PCB(char *name);
-void Insert_PCB(int, queue);
-void Remove_PCB(pcb*);
+void Insert_PCB(pcb*);
+pcb* Remove_PCB(pcb*);
 void Set_Priority(char*, int);
 
 //Show Functions
@@ -307,6 +307,68 @@ pcb* Find_PCB(char *name){
 	}
 	return NULL;
 }
+
+void priority_insert(queue* q, pcb *ptr){
+  pcb* prev;
+  //pcb * next;
+  pcb* walk; 
+  int priority;
+  priority = ptr->priority;
+  walk = q->head;
+  
+  if (sizeof(q)>=buffer)
+    printf("You cannot insert in this queue, it is already full");
+  else
+    while(walk != NULL)
+    {
+    if(priority > walk->priority) {
+      prev= walk->prev;
+      prev->next = ptr;
+      ptr->prev = prev;
+      walk->prev = ptr;
+      ptr->next = walk;
+    }
+  else 
+    walk=walk->next;
+  }
+}
+
+void FIFO_insert(queue* q, pcb *ptr){
+  if (sizeof(q)>=buffer) printf("You cannot insert in this queue, it is already full");
+  else {
+    (q->tail)->next= ptr;
+    ptr->prev=q->tail;
+    q->tail= ptr;
+  }
+
+}
+
+
+void Insert_PCB(pcb* pcb1){
+  char state= pcb1->state;
+  if (state == 'ru' || state == 'rd')
+    priority_insert(readyQ, pcb1);
+  if (state == 'b')
+    priority_insert(blockQ, pcb1);
+  if(state == 'sr')
+    FIFO_insert(suspendreadyQ, pcb1);
+  if(state == 'sb')
+    FIFO_insert(suspendblockQ, pcb1);
+}
+
+
+pcb* Remove_PCB(pcb *pcb1){
+  pcb * prev;
+  pcb * next;
+  prev= pcb1->prev;
+  pcb1->prev= NULL;
+  next=pcb1->next;
+  pcb1->next=NULL;
+  next->prev= prev;
+  prev->next= next;
+  return pcb1;
+}
+
 
 void Set_Priority(char* name, int p) {
   pcb* procB;
