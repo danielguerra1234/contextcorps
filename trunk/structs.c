@@ -5,7 +5,18 @@
 queue *readyQ;
 queue *blockQ;
 queue *suspendreadyQ;
-queue *suspendblockQ;
+queue *suspendblockQ;    
+
+queue* initQueue(queue*  newQ) {
+  
+	newQ->nodes = 0;
+	newQ->head = NULL;
+	newQ->tail = NULL;
+	newQ->index = NULL;
+	
+	return newQ;
+}
+
 long buffer_length = 100;
 unsigned char buffer[SIZE];
 //#############Queue Functions#################

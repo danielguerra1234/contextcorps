@@ -34,11 +34,14 @@ void dmd();
 void changeDir(DIR *arg);
 void setPrompt(char *s);
 
-//R1 Global Variables:
+//Global Variables:
 DIR *dp;
 struct dirent *ep;
 date_rec *date_p;
 char *prompt = "~> ";
+
+
+
 
 int main(void) {
 	int inputLength = 100;
@@ -49,15 +52,7 @@ int main(void) {
 	do {
 		printf("%s ", prompt);
 		fgets(input,*lengthPtr,stdin);
-		if (kbhit()) {
-      switch(getch()) {
-        case 2:
-          printf("Up Key Pressed");
-      
-        case 27:
-          exit(0);
-          }
-    }
+		
 //		sys_req(READ,TERMINAL,input,inputLength); //I'll eventually figure out how this works...
 		removeNL(input);
 		exitCode = parseCommand(input);
