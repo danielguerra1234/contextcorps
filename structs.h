@@ -74,6 +74,12 @@ typedef struct{
     unsigned char* previous_queue_descriptor;
 }queue_descriptor;
 
+typedef struct context { 
+    unsigned int BP, DI, SI, DS, ES; 
+    unsigned int DX, CX, BX, AX; 
+    unsigned int IP, CS, FLAGS; 
+    } context; 
+
 
 typedef struct{
     int nodes;
@@ -81,6 +87,13 @@ typedef struct{
     pcb *tail;
     pcb *index;
 }queue;
+
+typedef struct params {
+    int op_code;
+    int device_id;
+    unsigned char* buf_addr;
+    int* count_addr;
+    } params;
 
 //PCB PROTOTYPES
 pcb *allocatePcb();
@@ -91,7 +104,7 @@ pcb* Find_PCB(char *name);
 void Insert_PCB(pcb*);
 pcb* Remove_PCB(pcb*);
 void Set_Priority(char*, int);
-void initStruct(queue*);
+queue* initQueue(queue*);
 
 //Show Functions
 void Show_PCB(char*);
