@@ -86,10 +86,13 @@ void Free_PCB(pcb *ptr) { //pcb pointer
 
 }
    
-pcb* Setup_PCB(char *name, char *priorityc, char *classc) {
+pcb* Setup_PCB(char *name, char *classc, char *priorityc) {
 	pcb * pcb1;
 	int priority = atoi(priorityc);
 	int class = atoi(classc);
+	puts(name);
+	printf("%d\n",priority);
+	printf("%d\n",class);
 	if (name == NULL) {
 		errorCodeTranslator(ERR_PCB_NONAME);
 		return;
@@ -106,6 +109,7 @@ pcb* Setup_PCB(char *name, char *priorityc, char *classc) {
 		errorCodeTranslator(ERR_PCB_INVPRIORITY);
 		return;
 	}
+	if (class == 1 || class == 2) puts("it worked");
 	if (class!= 1 && class!= 2) {
 		errorCodeTranslator(ERR_PCB_INVCLASS);
 		return;
@@ -125,7 +129,7 @@ pcb* Find_PCB(char *name){
 	 pcb *walk = readyQ->head;
 	 if (walk == NULL) {
     printf("walk is null\n");
-    return;
+    return NULL;
     }
 	 while(walk != NULL) {
 		if (strcmp(walk->process_name,name) == 0) return walk;

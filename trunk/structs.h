@@ -63,6 +63,8 @@ typedef struct{
 
     unsigned char* stack_top;
     unsigned char* stack_base;
+	unsigned char* stack_size;
+	unsigned char* stack_p;
 
     memory process_memory_info;
 
