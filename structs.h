@@ -63,8 +63,8 @@ typedef struct{
 
     unsigned char* stack_top;
     unsigned char* stack_base;
-	unsigned char* stack_size;
-	unsigned char* stack_p;
+	  unsigned char* stack_size;
+	  unsigned char* stack_p;
 
     memory process_memory_info;
 
@@ -76,7 +76,7 @@ typedef struct{
     unsigned char* previous_queue_descriptor;
 }queue_descriptor;
 
-typedef struct context { 
+typedef struct{ 
     unsigned int BP, DI, SI, DS, ES; 
     unsigned int DX, CX, BX, AX; 
     unsigned int IP, CS, FLAGS; 
@@ -90,7 +90,7 @@ typedef struct{
     pcb *index;
 }queue;
 
-typedef struct params {
+typedef struct {
     int op_code;
     int device_id;
     unsigned char* buf_addr;

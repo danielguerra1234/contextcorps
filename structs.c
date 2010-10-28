@@ -117,7 +117,7 @@ pcb* Setup_PCB(char *name, char *classc, char *priorityc) {
 	pcb1= allocatePcb();
 	pcb1->process_name= name;
 	pcb1->priority= priority;
-	pcb1->process_class= classc;
+	pcb1->process_class = *classc;
 	pcb1->state= 1;
 	printf("PCB succesfully created\n");
 	readyQ->head = pcb1;
