@@ -4,146 +4,11 @@
  Author      : 
  Version     :
  Copyright   : Your copyright notice
- Description : Hello World in C, Ansi-style
+ Description : Hello World in C, Turbo C-style
  ============================================================================
  */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <conio.h>
-#include <dirent.h>
-#include <dos.h>
-#include <dir.h>
-#include <errno.h>
-#include <alloc.h>
-
-#include "MPX_SUPT.H"
-#include "Errors.h"
-#include "Help.h"
-
-//Structure:  QUEUE and PCB PROTOTYPES AND 
-
-#define SIZE 10000
-#define SYSTEM 1
-#define PROCESS 2
-#define APPLICATION 3
-#define RUNNING ru
-#define READY rd
-#define BLOCKED b
-#define SUSPENDED_READY sr
-#define SUSPENDED_BLOCKED sb
-
-typedef struct{
-    char stack[1024];
-	unsigned char *stack_top;
-	unsigned char *stack_base;
-}stack_area;
-
-
-typedef struct{
-    int mem_size;
-    unsigned char* load_address;
-    unsigned char* exec_address;
-}memory;
-
-typedef struct{
-    char *process_name;
-    int priority;
-
-    enum processclass {
-	one,
-	two
-    }process_class;
-
-    enum state {
-	ru,
-	rdm,
-	bm,
-	sr,
-	sb
-    }state;
-
-    stack_area process_stack_info;
-
-    unsigned char* next_one;
-
-    struct pcb *next;
-    struct pcb *prev;
-
-    unsigned char* stack_top;
-    unsigned char* stack_base;
-	  unsigned char* stack_size;
-	  unsigned int* stack_p;
-
-    memory process_memory_info;
-
-}pcb;
-
-typedef struct{
-    unsigned char* queue_element;
-    unsigned char* next_queue_descriptor;
-    unsigned char* previous_queue_descriptor;
-}queue_descriptor;
-
-typedef struct{ 
-    unsigned int BP, DI, SI, DS, ES; 
-    unsigned int DX, CX, BX, AX; 
-    unsigned int IP, CS, FLAGS; 
-    } context; 
-
-
-typedef struct{
-    int nodes;
-    pcb *head;
-    pcb *tail;
-    pcb *index;
-}queue;
-
-typedef struct {
-    int op_code;
-    int device_id;
-    unsigned char* buf_addr;
-    int* count_addr;
-    } params;
-
-//PCB PROTOTYPES
-pcb *allocatePcb();
-void blocked_add(pcb *node);
-void Free_PCB(pcb *ptr);
-pcb* Setup_PCB(char *name, char *priorityc, char *classc);
-pcb* Find_PCB(char *name);
-void Insert_PCB(pcb*);
-pcb* Remove_PCB(pcb*);
-void Set_Priority(char*, int);
-queue* initQueue(queue*);
-
-//Show Functions
-void Show_PCB(char*);
-void Show_All();
-void Show_Ready();
-void Show_Blocked();
-
-
-
-void init();
-int parseCommand(char *commandString);
-void displayDate();
-void changeDate(char *year, char *month, char *day);
-//int errorCodeTranslator(int code);
-void version();
-void removeNL(char *s);
-void terminate();
-void clearScreen();
-void listDir();
-void dmd();
-void changeDir(DIR *arg);
-void setPrompt(char *s);
-void interrupt sys_call(void);
-void save_context();
-pcb* move_pcb(pcb* ptr);
-void dispatch();
+            
+#include "GeckOS2.h"
 
 //Global Variables:
 DIR *dp;
@@ -153,10 +18,10 @@ char *prompt = "~> ";
 
 
 //4 Queues
-queue *readyQ;
-queue *blockQ;
-queue *suspendreadyQ;
-queue *suspendblockQ; 
+queue* readyQ;
+queue* blockQ;
+queue* suspendreadyQ;
+queue* suspendblockQ; 
 
 
 
@@ -168,11 +33,13 @@ int main(void) {
 	init();
 	do {
 		printf("%s ", prompt);
-		sys_call();
+		//sys_call();
 		fgets(input,*lengthPtr,stdin);
 		
 //		sys_req(READ,TERMINAL,input,inputLength); //I'll eventually figure out how this works...
+    printf("INput cont: %s\n", input);
 		removeNL(input);
+		printf("INput cont: %s\n", input);
 		exitCode = parseCommand(input);
 		if (exitCode == 1) {
 			puts("Are you sure you want to exit? (y/n)");
@@ -193,19 +60,19 @@ void init() {
 	puts(greeting);
 	dp = opendir ("./");
 	sys_init(MODULE_R2);
-	//initStruct(readyQ);
-	//initStruct(blockQ);
+	readyQ = initQueue(readyQ);
+	blockQ = initQueue(blockQ);
 	//initStruct(suspendreadyQ);
 	//initStruct(suspendblockQ);
 }
 
 //Structure functions for PCB and QUEUE
-queue* initQueue(queue*  newQ) {
+queue* initQueue(queue* newQ) {
   
 	newQ->nodes = 0;
 	newQ->head = NULL;
 	newQ->tail = NULL;
-	newQ->index = NULL;
+	newQ->index = 0;
 	
 	return newQ;
 }
@@ -215,12 +82,7 @@ unsigned char buffer[SIZE];
 //#############Queue Functions#################
 //Queue function error codes start in the 300
 
-void initStruct(queue* q) {
-  q->nodes = 0;
-	q->head = NULL;
-	q->tail = NULL;
-	q->index = NULL;
-}
+
 
 void blocked_add(pcb *node) {
     if (blockQ->nodes == 0) {
@@ -266,11 +128,11 @@ pcb *allocatePcb(){
 	int *address;
 	pcb *pcb_ptr;
 	
-	pcb_ptr = sys_alloc_mem(size);//use sys_alloc_mem
+	pcb_ptr = (pcb*)sys_alloc_mem(size);//use sys_alloc_mem
 	address = sys_alloc_mem(1024);
 	pcb_ptr->stack_base = address;
 	pcb_ptr->stack_top = pcb_ptr->stack_base + size;
-	return (&pcb_ptr);
+	return (pcb_ptr);
 }
 
 void Free_PCB(pcb *ptr) { //pcb pointer
@@ -279,13 +141,12 @@ void Free_PCB(pcb *ptr) { //pcb pointer
 
 }
    
-pcb* Setup_PCB(char *name, char *classc, char *priorityc) {
-	pcb * pcb1;
-	int priority = atoi(priorityc);
-	int class = atoi(classc);
-	puts(name);
-	printf("%d\n",priority);
-	printf("%d\n",class);
+pcb* Setup_PCB(char *name, int priorityc, int classc) {
+	pcb* pcb1;
+	int class = classc;
+	
+	printf("SetupPCB: Name: %s, Prior: %d, Class: %d\n", name, priorityc, classc);
+	
 	if (name == NULL) {
 		errorCodeTranslator(ERR_PCB_NONAME);
 		return;
@@ -294,45 +155,60 @@ pcb* Setup_PCB(char *name, char *classc, char *priorityc) {
 		errorCodeTranslator(ERR_PCB_NMETOLONG);
 		return;
 	}
-	if (Find_PCB(name) != NULL) {
+/*	if (Find_PCB(name) != NULL) {
 		errorCodeTranslator(ERR_PCB_NMEEXISTS);
 		return;
-	}
-	if(priority >127 || priority<-128) {
+	}  */
+	if(priorityc >127 || priorityc<-128) {
 		errorCodeTranslator(ERR_PCB_INVPRIORITY);
 		return;
 	}
-	if (class == 1 || class == 2) puts("it worked");
 	if (class!= 1 && class!= 2) {
 		errorCodeTranslator(ERR_PCB_INVCLASS);
 		return;
 	}
-	pcb1= allocatePcb();
+	pcb1 = allocatePcb();
 	pcb1->process_name= name;
-	pcb1->priority= priority;
-	pcb1->process_class = *classc;
-	pcb1->state= 1;
-	printf("PCB succesfully created\n");
-	readyQ->head = pcb1;
+	sprintf("%s, %s", name, pcb1->process_name);
+	pcb1->priority = priorityc;
+	pcb1->process_class = classc;
+	pcb1->state = READY;
+	pcb1->exe_addr = NULL;
+	printf("PCB succesfully created\n\n");
+	Insert_PCB(pcb1);
 	Show_PCB(name);
 	return pcb1;
 }
 
 pcb* Find_PCB(char *name){
-	 pcb *walk = readyQ->head;
-	 if (walk == NULL) {
+	 pcb* walk = readyQ->head;
+	 printf("Find_PCB Function executing with name: %s\n",name);
+	 printf("Find_PCB walk var: %s\n", walk->process_name);
+	 
+	/* if (walk == NULL) {
     printf("walk is null\n");
     return NULL;
     }
+    
+	 while(walk != NULL) {
+	  printf("Ready Queue Loop Start.\n");
+		if (strcmp(walk->process_name,name) == 0) {
+      return walk;
+      }
+      
+		if (walk->next != NULL) {
+		printf("Ready Queue Next walk.\n");
+    walk = walk->next;
+    }
+	}
+	
+	 walk = blockQ->head;
 	 while(walk != NULL) {
 		if (strcmp(walk->process_name,name) == 0) return walk;
 		if (walk->next != NULL) walk = walk->next;
-	}
-	walk = blockQ->head;
-	 while(walk != NULL) {
-		if (strcmp(walk->process_name,name) == 0) return walk;
-		if (walk->next != NULL) walk = walk->next;
-	}
+	}  */
+	
+	printf("FIND_PCB finished.\n");
 	return NULL;
 }
 
@@ -373,14 +249,18 @@ void FIFO_insert(queue* q, pcb *ptr){
 
 
 void Insert_PCB(pcb* pcb1){
-  char state= pcb1->state;
-  if (state == 'ru' || state == 'rd')
+  int state;
+  state = pcb1->state;
+  if (state == RUNNING || state == READY)
     priority_insert(readyQ, pcb1);
-  if (state == 'b')
+    
+  if (state == BLOCKED)
     priority_insert(blockQ, pcb1);
-  if(state == 'sr')
+    
+  if(state == SUSPENDED_READY)
     FIFO_insert(suspendreadyQ, pcb1);
-  if(state == 'sb')
+    
+  if(state == SUSPENDED_BLOCKED)
     FIFO_insert(suspendblockQ, pcb1);
 }
 
@@ -407,15 +287,39 @@ void Set_Priority(char* name, int p) {
 
 void Show_PCB(char* name) {
   pcb* pcbPtr;
+  pcb* pcbPtr2;
+  char* temp;
   //pcbPtr = Find_PCB(name);
   if (pcbPtr == NULL) {
     printf("PCB: %s does not exist.\n",name);
     return;
   } else {
+    pcbPtr2 = Find_PCB(name);
+    if (pcbPtr2->state == RUNNING) {
+      temp = "RUNNING";  
+    } 
+    else if (pcbPtr2->state == READY) {
+      temp = "READY";
+    }
+    else if (pcbPtr2->state == BLOCKED) {
+      temp = "BLOCKED";
+    }
+    else if (pcbPtr2->state == SUSPENDED_BLOCKED) {
+      temp = "SUSPENDED BLOCKED";
+    }
+    else if (pcbPtr2->state == SUSPENDED_READY) {
+      temp = "SUSPENDED READY";
+    }
+    else {
+      printf("Invalid State.\n");
+      return;
+    }
+    
+    
     printf("Name: %s\n" 
             "Priority: %d\n" 
-            "Process_Class: %s\n" 
-            "State: %s\n",pcbPtr->process_name, pcbPtr->priority, pcbPtr->process_class, pcbPtr->state);
+            "Process_Class: %d\n" 
+            "State: %s\n",pcbPtr2->process_name, pcbPtr2->priority, pcbPtr2->process_class, temp);
     return;
   }
 }
@@ -432,6 +336,8 @@ int parseCommand(char *commandString) {
 	char *arg2 = strtok(NULL, " ");
 	char *arg3 = strtok(NULL, " ");
 	char *arg4 = strtok(NULL, " ");
+
+  printf("commandString: %sarg1: %s, arg2: %s, arg3: %s, arg4: %s\n", commandString, arg1, arg2, arg3, arg4);
 
 //	printf("command: %s\narg1: %s\narg2: %s\narg3: %s\narg4: %s\n", command,arg1,arg2,arg3,arg4); //XXX: DEBUG
 	if (command == NULL) return 0; //if no command given, simply return...since it's not really an issue
@@ -487,8 +393,8 @@ int parseCommand(char *commandString) {
 				return 0;
 			} else {
 				//add function call once functions are ready
-				//printf("Creating a pcb\nName: %s\nClass: %s\nPriority: %s\n",arg2,arg3,arg4);
-				Setup_PCB(arg2,arg3,arg4);
+				//printf("Creating a pcb\nName: %s\nClass: %s\nPriority: %d\n",arg2,atoi(arg3),arg4);
+				Setup_PCB(arg2,atoi(arg3),atoi(arg4));
 				return 0;
 			}
 		}
@@ -751,11 +657,22 @@ void changeDate(char *yearc, char *monthc, char *dayc) {
 	}
 }
 
+
+pcb* move_pcb(pcb* ptr){
+
+	pcb* head;
+	head= Remove_PCB(ptr);
+	head->state= RUNNING; //if it doesn't work use integer: actual number
+	return (head);
+
+}
+ /*
 void interrupt sys_call() {
     params* param_p;
-    int i = sizeof(context);
-    printf("Size of context: %d", i);
-    param_p = (params*)(MK_FP(_SS,_SP));
+    pcb* cop;
+    //param_p = ((MK_FP(_SS,_SP) + sizeof(context)));
+    cop-> stack_top = (unsigned char *)MK_FP(_SS, _SP);
+    param_p = (params*)(cop->stack_top + sizeof(context));
 
     if (param_p->op_code == IDLE) {
         printf("Call routine to set process into ready queue");
@@ -769,9 +686,33 @@ void interrupt sys_call() {
     }
     
     //dispatcher();
-}
+}       
 
-          
+void testn_R3(){
+
+	pcb* test1;
+	pcb* test2;
+	pcb* test3;
+	pcb* test4;
+	pcb* test5;
+	
+	test1 = Setup_PCB("test1", 1, one);
+	test1->exe_addr = &test1_R3;
+	
+	test2 = Setup_PCB("test2", 1, one);
+	test2->exe_addr = &test2_R3;
+	
+	test3 = Setup_PCB("test3", 1, one);
+	test3->exe_addr = &test3_R3;
+	
+	test4 = Setup_PCB("test4", 1, one);
+	test4->exe_addr = &test4_R3;
+	
+	test5 = Setup_PCB("test5", 1, one);
+	test5->exe_addr = &test5_R3;
+
+
+}
 
 void save_context(int n){ //takes an integer for what test number it is
 
@@ -782,11 +723,9 @@ void save_context(int n){ //takes an integer for what test number it is
 	context_p->DS = _DS;
 	context_p->ES = _ES;
 	context_p->CS = FP_SEG(&testn_R3);
-	context_p->DS = FP_OFF(&testn_R3);
-	context_p->DS = 0x200;
+	context_p->IP = FP_OFF(&testn_R3);
+	context_p->FLAGS = 0x200;
 }
-
-
 
 void dispatch(){
  	pcb* cop;
@@ -811,15 +750,8 @@ void dispatch(){
 			}
 	 }
 }
+*/
 
-pcb* move_pcb(pcb* ptr){
-
-	pcb* head;
-	head= Remove_PCB(ptr);
-	head->state= ru; //if it doesn't work use integer: actual number
-	return (head);
-
-}
 
 void version () {
 	printf("This is the version #1.1.33 of GeckOs\n");
