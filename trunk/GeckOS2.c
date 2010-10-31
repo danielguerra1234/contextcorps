@@ -31,15 +31,14 @@ int main(void) {
 	char input[100];
 	int exitCode = 0;
 	init();
+	
 	do {
+	  printf("Testing Info\n\n\n");
+	  printf("\tReady Q head: %s\n", (readyQ->head)->process_name);
 		printf("%s ", prompt);
 		//sys_call();
 		fgets(input,*lengthPtr,stdin);
-		
-//		sys_req(READ,TERMINAL,input,inputLength); //I'll eventually figure out how this works...
-    printf("INput cont: %s\n", input);
 		removeNL(input);
-		printf("INput cont: %s\n", input);
 		exitCode = parseCommand(input);
 		if (exitCode == 1) {
 			puts("Are you sure you want to exit? (y/n)");
@@ -47,6 +46,8 @@ int main(void) {
 			removeNL(input);
 			if (strcmp(input,"N") == 0 || strcmp(input,"n") == 0 || strcmp(input,"No") == 0 || strcmp(input,"no") == 0 || strcmp(input,"NO") == 0) exitCode = 0;
 		}
+		printf("Testing Info\n\n");
+	  printf("\tReady Q head: %s\n\n", (readyQ->head)->process_name);
 	} while (exitCode == 0);
 	if (exitCode != 1) errorCodeTranslator(exitCode);
 	terminate();
@@ -60,15 +61,16 @@ void init() {
 	puts(greeting);
 	dp = opendir ("./");
 	sys_init(MODULE_R2);
-	readyQ = initQueue(readyQ);
-	blockQ = initQueue(blockQ);
+	readyQ = initQueue(readyQ, "Ready\0");
+	blockQ = initQueue(blockQ, "Blocked\0");
 	//initStruct(suspendreadyQ);
 	//initStruct(suspendblockQ);
 }
 
 //Structure functions for PCB and QUEUE
-queue* initQueue(queue* newQ) {
+queue* initQueue(queue* newQ, char* name) {
   
+  newQ->name = name;
 	newQ->nodes = 0;
 	newQ->head = NULL;
 	newQ->tail = NULL;
@@ -169,71 +171,91 @@ pcb* Setup_PCB(char *name, int priorityc, int classc) {
 	}
 	pcb1 = allocatePcb();
 	pcb1->process_name= name;
-	sprintf("%s, %s", name, pcb1->process_name);
+	//sprintf("%s, %s", name, pcb1->process_name);
 	pcb1->priority = priorityc;
 	pcb1->process_class = classc;
-	pcb1->state = READY;
+	pcb1->state = 101;
 	pcb1->exe_addr = NULL;
 	printf("PCB succesfully created\n\n");
 	Insert_PCB(pcb1);
-	Show_PCB(name);
+	//printf("\nName: %s, Class: %d, State: %d\n",pcb1->process_name, pcb1->process_class,pcb1->state);
+	//Show_PCB(name);
+	//printf("\nReadyQ check: %s\n\n", (readyQ->head)->process_name);
 	return pcb1;
 }
 
 pcb* Find_PCB(char *name){
-	 pcb* walk = readyQ->head;
-	 printf("Find_PCB Function executing with name: %s\n",name);
-	 printf("Find_PCB walk var: %s\n", walk->process_name);
+	 pcb* walk;
+	 int check;
+   walk = readyQ->head; 
+	 //printf("Find_PCB walk var: %s\n", walk->process_name);
 	 
-	/* if (walk == NULL) {
-    printf("walk is null\n");
+	 //printf("Find_PCB Function queue name check: %s, %sn",name,(readyQ->head)->process_name);
+	 //printf("\nReadyQ check: %s, %s\n\n", name, (readyQ->head)->process_name);
+	 return;
+	 if (walk == NULL) {
+    printf("PCB not available.\n");
     return NULL;
     }
     
 	 while(walk != NULL) {
-	  printf("Ready Queue Loop Start.\n");
+	  check = check + 1;
+	  //printf("Ready Queue Loop Start.\n");
+	  printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+	  if (check == 25) {
+      break;
+    }
 		if (strcmp(walk->process_name,name) == 0) {
       return walk;
       }
       
 		if (walk->next != NULL) {
-		printf("Ready Queue Next walk.\n");
+		//printf("Ready Queue Next walk.\n");
     walk = walk->next;
     }
+    
 	}
-	
+	  /*
 	 walk = blockQ->head;
 	 while(walk != NULL) {
 		if (strcmp(walk->process_name,name) == 0) return walk;
 		if (walk->next != NULL) walk = walk->next;
 	}  */
 	
-	printf("FIND_PCB finished.\n");
+	//printf("FIND_PCB finished.\n");
 	return NULL;
 }
 
 void priority_insert(queue* q, pcb *ptr){
   pcb* prev;
-  //pcb * next;
   pcb* walk; 
+  
   int priority;
   priority = ptr->priority;
-  walk = q->head;
   
-  if (sizeof(q)>=buffer)
-    printf("You cannot insert in this queue, it is already full");
-  else
+  walk = q->head;
+  //printf("");
+  if (sizeof(q)>=buffer) {
+    printf("You cannot insert in this queue, it is already full\n\n");
+    return;
+  } else if (walk == NULL) {
+        //printf("First PCB in the queue: %s", ptr->process_name);
+        ptr->next = NULL;
+        ptr->prev = NULL;
+        q->head = ptr;
+        return;
+  } else {
     while(walk != NULL)
     {
-    if(priority > walk->priority) {
-      prev= walk->prev;
-      prev->next = ptr;
-      ptr->prev = prev;
-      walk->prev = ptr;
-      ptr->next = walk;
+      if(priority > walk->priority) {
+        prev= walk->prev;
+        prev->next = ptr;
+        ptr->prev = prev;
+        walk->prev = ptr;
+        ptr->next = walk;
+     } else 
+          walk=walk->next;
     }
-  else 
-    walk=walk->next;
   }
 }
 
@@ -251,23 +273,30 @@ void FIFO_insert(queue* q, pcb *ptr){
 void Insert_PCB(pcb* pcb1){
   int state;
   state = pcb1->state;
+  printf("State in Insert: %d", state);
   if (state == RUNNING || state == READY)
+    printf("\n\nState test inside of if.\n\n");
     priority_insert(readyQ, pcb1);
+    return;
     
   if (state == BLOCKED)
     priority_insert(blockQ, pcb1);
+    return;
     
   if(state == SUSPENDED_READY)
     FIFO_insert(suspendreadyQ, pcb1);
+    return;
     
   if(state == SUSPENDED_BLOCKED)
     FIFO_insert(suspendblockQ, pcb1);
+    return;
+  
 }
 
 
 pcb* Remove_PCB(pcb *pcb1){
-  pcb * prev;
-  pcb * next;
+  pcb* prev;
+  pcb* next;
   prev= pcb1->prev;
   pcb1->prev= NULL;
   next=pcb1->next;
@@ -291,35 +320,29 @@ void Show_PCB(char* name) {
   char* temp;
   //pcbPtr = Find_PCB(name);
   if (pcbPtr == NULL) {
-    printf("PCB: %s does not exist.\n",name);
+    printf("PCB: %s does not exist.\n\n",name);
     return;
   } else {
     pcbPtr2 = Find_PCB(name);
+    if (pcbPtr2 == NULL) {
+      printf("PCB not found.\n");
+      return;
+    }
+    printf("State is: %i\n\n", pcbPtr2->state);
     if (pcbPtr2->state == RUNNING) {
       temp = "RUNNING";  
     } 
     else if (pcbPtr2->state == READY) {
       temp = "READY";
     }
-    else if (pcbPtr2->state == BLOCKED) {
-      temp = "BLOCKED";
-    }
-    else if (pcbPtr2->state == SUSPENDED_BLOCKED) {
-      temp = "SUSPENDED BLOCKED";
-    }
-    else if (pcbPtr2->state == SUSPENDED_READY) {
-      temp = "SUSPENDED READY";
-    }
     else {
-      printf("Invalid State.\n");
-      return;
+      temp = "INVALID STATE";
     }
-    
-    
+
     printf("Name: %s\n" 
             "Priority: %d\n" 
             "Process_Class: %d\n" 
-            "State: %s\n",pcbPtr2->process_name, pcbPtr2->priority, pcbPtr2->process_class, temp);
+            "State: %s\n\n",pcbPtr2->process_name, pcbPtr2->priority, pcbPtr2->process_class, temp);
     return;
   }
 }
@@ -337,7 +360,7 @@ int parseCommand(char *commandString) {
 	char *arg3 = strtok(NULL, " ");
 	char *arg4 = strtok(NULL, " ");
 
-  printf("commandString: %sarg1: %s, arg2: %s, arg3: %s, arg4: %s\n", commandString, arg1, arg2, arg3, arg4);
+  //printf("commandString: %sarg1: %s, arg2: %s, arg3: %s, arg4: %s\n", commandString, arg1, arg2, arg3, arg4);
 
 //	printf("command: %s\narg1: %s\narg2: %s\narg3: %s\narg4: %s\n", command,arg1,arg2,arg3,arg4); //XXX: DEBUG
 	if (command == NULL) return 0; //if no command given, simply return...since it's not really an issue
