@@ -23,31 +23,43 @@ queue* blockQ;
 queue* suspendreadyQ;
 queue* suspendblockQ; 
 
-
+hist_stack* commands;
+history* global_chosen;
+hist_stack* used_commands;
+int id_h = 0;
 
 int main(void) {
+  pcb* fake;
 	int inputLength = 100;
 	int *lengthPtr = &inputLength;
 	char input[100];
 	int exitCode = 0;
+	history* hist;
 	init();
-	
+	//fake->process_name = "Fake";
+	//readyQ->head = fake;
 	do {
 	  printf("Testing Info\n\n\n");
-	  printf("\tReady Q head: %s\n", (readyQ->head)->process_name);
+	  printf("Index: %i\n",readyQ->index);
+	  if (readyQ->head) {
+	     printf("\tReadyQ head: %s\n", (readyQ->head)->process_name);
+	     printf("Index: %i\n", readyQ->index);
+       }   
+	     
 		printf("%s ", prompt);
-		//sys_call();
+		
 		fgets(input,*lengthPtr,stdin);
 		removeNL(input);
-		exitCode = parseCommand(input);
+		    
+		exitCode = parseCommand(strcat(input, "\0"));
+		
 		if (exitCode == 1) {
 			puts("Are you sure you want to exit? (y/n)");
 			fgets(input,*lengthPtr,stdin);
 			removeNL(input);
 			if (strcmp(input,"N") == 0 || strcmp(input,"n") == 0 || strcmp(input,"No") == 0 || strcmp(input,"no") == 0 || strcmp(input,"NO") == 0) exitCode = 0;
 		}
-		printf("Testing Info\n\n");
-	  printf("\tReady Q head: %s\n\n", (readyQ->head)->process_name);
+	  printf("\tReady Q head 2: %s\n\n", (readyQ->head)->process_name);
 	} while (exitCode == 0);
 	if (exitCode != 1) errorCodeTranslator(exitCode);
 	terminate();
@@ -63,12 +75,16 @@ void init() {
 	sys_init(MODULE_R2);
 	readyQ = initQueue(readyQ, "Ready\0");
 	blockQ = initQueue(blockQ, "Blocked\0");
+	commands->head = NULL;
+	commands->index = 0;
 	//initStruct(suspendreadyQ);
 	//initStruct(suspendblockQ);
 }
 
 //Structure functions for PCB and QUEUE
 queue* initQueue(queue* newQ, char* name) {
+  
+  newQ = (queue*)sys_alloc_mem(sizeof(queue));
   
   newQ->name = name;
 	newQ->nodes = 0;
@@ -78,6 +94,8 @@ queue* initQueue(queue* newQ, char* name) {
 	
 	return newQ;
 }
+
+
 
 long buffer_length = 100;
 unsigned char buffer[SIZE];
@@ -106,7 +124,7 @@ void blocked_add(pcb *node) {
         } 
     }
 }
-
+/*
 pcb* getNext(queue *q) {
 	if (q->head == NULL) return NULL; //if no head, then no pcb in queue
 	if (q->index == NULL) q->index = q->head; //set initial position
@@ -121,7 +139,7 @@ pcb* getPrevious(queue *q) {
 	else if (q->index->prev == NULL) q->index = q->tail; //if at beginning of queue, start at end
 	else q->index = q->index->prev; //change to previous element
 	return q->index;
-}
+} */
 
 //############PCB Functions####################
 //PCB error codes start in the 400
@@ -147,7 +165,7 @@ pcb* Setup_PCB(char *name, int priorityc, int classc) {
 	pcb* pcb1;
 	int class = classc;
 	
-	printf("SetupPCB: Name: %s, Prior: %d, Class: %d\n", name, priorityc, classc);
+	printf("SetupPCB: Name: %s, Prior: %d, Class: %d\n\n", name, priorityc, classc);
 	
 	if (name == NULL) {
 		errorCodeTranslator(ERR_PCB_NONAME);
@@ -170,7 +188,8 @@ pcb* Setup_PCB(char *name, int priorityc, int classc) {
 		return;
 	}
 	pcb1 = allocatePcb();
-	pcb1->process_name= name;
+	printf("PCB name: %s\n", name);
+	pcb1->process_name = strdup(name);
 	//sprintf("%s, %s", name, pcb1->process_name);
 	pcb1->priority = priorityc;
 	pcb1->process_class = classc;
@@ -179,8 +198,8 @@ pcb* Setup_PCB(char *name, int priorityc, int classc) {
 	printf("PCB succesfully created\n\n");
 	Insert_PCB(pcb1);
 	//printf("\nName: %s, Class: %d, State: %d\n",pcb1->process_name, pcb1->process_class,pcb1->state);
-	//Show_PCB(name);
-	//printf("\nReadyQ check: %s\n\n", (readyQ->head)->process_name);
+	Show_PCB(name);
+	//printf("\nReadyQ check in setup: %s\n", (readyQ->head)->process_name);
 	return pcb1;
 }
 
@@ -188,11 +207,7 @@ pcb* Find_PCB(char *name){
 	 pcb* walk;
 	 int check;
    walk = readyQ->head; 
-	 //printf("Find_PCB walk var: %s\n", walk->process_name);
 	 
-	 //printf("Find_PCB Function queue name check: %s, %sn",name,(readyQ->head)->process_name);
-	 //printf("\nReadyQ check: %s, %s\n\n", name, (readyQ->head)->process_name);
-	 return;
 	 if (walk == NULL) {
     printf("PCB not available.\n");
     return NULL;
@@ -200,8 +215,7 @@ pcb* Find_PCB(char *name){
     
 	 while(walk != NULL) {
 	  check = check + 1;
-	  //printf("Ready Queue Loop Start.\n");
-	  printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+	 // printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
 	  if (check == 25) {
       break;
     }
@@ -209,58 +223,80 @@ pcb* Find_PCB(char *name){
       return walk;
       }
       
-		if (walk->next != NULL) {
-		//printf("Ready Queue Next walk.\n");
     walk = walk->next;
-    }
-    
-	}
-	  /*
-	 walk = blockQ->head;
-	 while(walk != NULL) {
-		if (strcmp(walk->process_name,name) == 0) return walk;
-		if (walk->next != NULL) walk = walk->next;
-	}  */
-	
-	//printf("FIND_PCB finished.\n");
-	return NULL;
+    }  
+    return NULL;
 }
 
 void priority_insert(queue* q, pcb *ptr){
-  pcb* prev;
   pcb* walk; 
-  
+  pcb* prev;
+  int c = 0;
   int priority;
-  priority = ptr->priority;
+  int check= 0;
   
+  priority = ptr->priority;
   walk = q->head;
-  //printf("");
+  
   if (sizeof(q)>=buffer) {
     printf("You cannot insert in this queue, it is already full\n\n");
     return;
-  } else if (walk == NULL) {
-        //printf("First PCB in the queue: %s", ptr->process_name);
-        ptr->next = NULL;
-        ptr->prev = NULL;
-        q->head = ptr;
-        return;
-  } else {
-    while(walk != NULL)
-    {
-      if(priority > walk->priority) {
-        prev= walk->prev;
-        prev->next = ptr;
-        ptr->prev = prev;
-        walk->prev = ptr;
-        ptr->next = walk;
-     } else 
-          walk=walk->next;
+  }
+    
+  if (walk == NULL) {
+    printf("Walk is Null.\n");
+    ptr->next == NULL;
+    ptr->prev == NULL;
+    q->head = ptr;
+    q->index++;
+    return;
+  }
+  
+  while (walk != NULL) {
+    printf("Priority: %i\tWalk: %i\n",priority, walk->priority);
+    
+    if (check == 25){
+      printf("Broke by check");
+      break;
     }
+    
+    if (priority <= walk->priority) {
+      printf("p < w\n");
+      prev = walk->prev;
+      walk->prev = ptr->next;
+      
+        if (c == 0){
+             (q->head)->prev  = ptr;
+             (q->head)->next  = NULL;
+             ptr->next        = q->head;
+             ptr->prev        = NULL;
+             q->head          = ptr;
+             q->index++;
+             return;
+        }
+    
+    walk->prev = ptr;
+    prev->next = ptr;
+    
+    ptr->prev = prev;
+    ptr->next = walk; 
+    
+    //walk = ptr; 
+    
+    //Start right here  
+    q->index++;
+    return;
+      
+    } else if (priority > walk->priority) {
+      c++;
+      walk = walk->next;
+    }
+    
   }
 }
 
 void FIFO_insert(queue* q, pcb *ptr){
-  if (sizeof(q)>=buffer) printf("You cannot insert in this queue, it is already full");
+  if (sizeof(q)>=buffer) printf("You cannot insert in this queue, it is already full\n");
   else {
     (q->tail)->next= ptr;
     ptr->prev=q->tail;
@@ -269,14 +305,13 @@ void FIFO_insert(queue* q, pcb *ptr){
 
 }
 
-
 void Insert_PCB(pcb* pcb1){
   int state;
   state = pcb1->state;
-  printf("State in Insert: %d", state);
+  
   if (state == RUNNING || state == READY)
-    printf("\n\nState test inside of if.\n\n");
     priority_insert(readyQ, pcb1);
+    printf("ReadyQ name: %s Head: %s\n", readyQ->name, (readyQ->head)->process_name);
     return;
     
   if (state == BLOCKED)
@@ -315,20 +350,21 @@ void Set_Priority(char* name, int p) {
 }
 
 void Show_PCB(char* name) {
+  
   pcb* pcbPtr;
   pcb* pcbPtr2;
   char* temp;
   //pcbPtr = Find_PCB(name);
-  if (pcbPtr == NULL) {
+  if (FALSE) {
     printf("PCB: %s does not exist.\n\n",name);
     return;
   } else {
+    //pcbPtr2 = Find_PCB(name);
     pcbPtr2 = Find_PCB(name);
     if (pcbPtr2 == NULL) {
       printf("PCB not found.\n");
       return;
     }
-    printf("State is: %i\n\n", pcbPtr2->state);
     if (pcbPtr2->state == RUNNING) {
       temp = "RUNNING";  
     } 
@@ -347,20 +383,76 @@ void Show_PCB(char* name) {
   }
 }
 
+void show_ready(){
+	 pcb* walk;
+	 int check;
+   walk = readyQ->head; 
+	 
+	 if (walk == NULL) {
+    printf("Queue not available or is empty.\n");
+    return NULL;
+    } 
+	 while(walk != NULL) {
+	     check = check + 1;
+	  //printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+	     if (check == 30) {
+          break;
+        }
+    
+        printf("Pcb: %s\n",walk->process_name); 
+      
+        walk = walk->next;  
+		 }
+	return NULL;
+}
 
+//#############History Functions###############
+
+history* setup_hist(int id, char* com) {
+
+    history* temp;
+    temp = (history*)sys_alloc_mem(sizeof(history));
+    temp->id = id;
+    temp->command = strdup(com);
+    temp->next == NULL;
+    
+    return temp;
+}
+
+history* pop(hist_stack* stack_h) {
+
+   history* temp; 
+   temp = stack_h->head;
+   stack_h->head = (stack_h->head->next);
+   
+   return temp; 
+}
+
+void push(hist_stack* stack_h, history* new_com) {
+    new_com->next = stack_h->head;
+    stack_h->head = new_com;
+    stack_h->index++;
+    return;
+}
 
 
 //NOTE: a return value other than 0 will result in program exit
 int parseCommand(char *commandString) {
 	//TODO: look to see what else I can do wtih strtok
 	//TODO: turn these into an actual struct...preferably an array I can just loop over, if that's possible
-	char *command = strtok(commandString, " ");
-	char *arg1 = strtok(NULL, " ");
-	char *arg2 = strtok(NULL, " ");
-	char *arg3 = strtok(NULL, " ");
-	char *arg4 = strtok(NULL, " ");
-
-  //printf("commandString: %sarg1: %s, arg2: %s, arg3: %s, arg4: %s\n", commandString, arg1, arg2, arg3, arg4);
+	char* command;
+	char* arg1;       //option flag
+	char* arg2;
+	char* arg3;
+	char* arg4;
+	
+	char* strtokaddr;
+	command = strtok(commandString, " ");
+	arg1 = strtok(NULL, " ");
+	arg2 = strtok(NULL, " ");
+	arg3 = strtok(NULL, " ");
+	arg4 = strtok(NULL, " "); 
+  //printf("\ncommandString: %s command: %s, arg1: %s, arg2: %s, arg3: %s, arg4: %s\n", commandString, command, arg1, arg2, arg3, arg4);
 
 //	printf("command: %s\narg1: %s\narg2: %s\narg3: %s\narg4: %s\n", command,arg1,arg2,arg3,arg4); //XXX: DEBUG
 	if (command == NULL) return 0; //if no command given, simply return...since it's not really an issue
@@ -387,6 +479,35 @@ int parseCommand(char *commandString) {
 		else setPrompt(arg1);
 		return 0;
 	}
+	
+	if (strcmp(command, "hist") == 0) {
+	     int inputLength = 100;
+	     int *lengthPtr = &inputLength;
+	     char input[100];             
+	     int exitcode = 0;
+	     history* chosen;
+    do {
+        printf("\nHistory of commands\n\n-hist> ");
+        fgets(input, *lengthPtr, stdin);
+        removeNL(input);
+        printf("input: %s", input);
+        if (strcmp(input, "n") == 0) {
+          chosen = pop(commands);
+          printf("%s",chosen->command);
+          push(used_commands, chosen);
+        }
+        else if (strcmp(input, "s") == 0){
+          push(commands,chosen);
+          global_chosen = chosen;
+          exitcode = 1;
+        }
+        else if (strcmp(input, "q") == 0) {
+           exitcode = 1;
+        }
+    } while (exitcode == 0);   
+    
+  }
+	
 	if (strcmp(command,"date") == 0) {
 		if (arg1 == NULL) {
 			displayDate(); //if the user wants to display the date
@@ -418,6 +539,7 @@ int parseCommand(char *commandString) {
 				//add function call once functions are ready
 				//printf("Creating a pcb\nName: %s\nClass: %s\nPriority: %d\n",arg2,atoi(arg3),arg4);
 				Setup_PCB(arg2,atoi(arg3),atoi(arg4));
+				//printf("parse command check: %s\n",readyQ->head->process_name);
 				return 0;
 			}
 		}
@@ -531,7 +653,7 @@ int parseCommand(char *commandString) {
       }
       else {
         //add function call 
-        printf("calling show pcb function\n");
+        //printf("calling show pcb function\n");
         Show_PCB(arg2);
         return 0;
       }
@@ -544,6 +666,7 @@ int parseCommand(char *commandString) {
       else {
         //add function call
         printf("calling show with -a argument\n");
+        //show_all();
         return 0;
       } 
     }
@@ -554,6 +677,7 @@ int parseCommand(char *commandString) {
       }
       else {
         printf("calling show command with -r argument\n");
+        show_ready();
         return 0;
       }
     }
@@ -679,7 +803,6 @@ void changeDate(char *yearc, char *monthc, char *dayc) {
 		  displayDate();
 	}
 }
-
 
 pcb* move_pcb(pcb* ptr){
 
