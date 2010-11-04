@@ -45,6 +45,7 @@ char* suspend_c       = "suspend";
 char* resume_c        = "resume";
 char* priority_c      = "priority";
 char* alias_c         = "alias";
+
 int main(void) {
   pcb* fake;
 	int inputLength = 100;
@@ -246,6 +247,7 @@ pcb* Find_PCB(char *name){
 void priority_insert(queue* q, pcb *ptr){
   pcb* walk; 
   pcb* prev;
+  pcb* temp;
   int c = 0;
   int priority;
   int check= 0;
@@ -269,7 +271,6 @@ void priority_insert(queue* q, pcb *ptr){
   
   while (walk != NULL) {
     printf("Priority: %i\tWalk: %i\n",priority, walk->priority);
-    
     if (check == 25){
       printf("Broke by check");
       break;
@@ -278,30 +279,42 @@ void priority_insert(queue* q, pcb *ptr){
     if (priority <= walk->priority) {
       printf("p < w\n");
       
-        if (walk->prev == NULL){
-              printf("Walk == NULL test.\n");
+        if (walk->prev == NULL && c == 0){
+              //printf("Walk == NULL test.\n");
              walk->prev       = ptr;
              walk->next       = NULL;
              
              ptr->next        = walk;
              ptr->prev        = NULL;
-             walk             = ptr;
-             printf("walk name: %s", walk->process_name);
+             q->head          = ptr;
+             printf("walk name: %s\n\n", walk->process_name);
              q->index++;
-             return;
-        }
-    
-    walk->prev = ptr;
-    prev->next = ptr;
-    
-    ptr->prev = prev;
-    ptr->next = walk; 
-   
+             //c++;
+             break;
+        } else {
+            temp = walk->prev;
+            ptr->next = walk;
+            ptr->prev = walk->prev;
+            temp->next = ptr;
+            walk->prev = ptr;
+            
+            return;
+            
+        }  
     q->index++;
     return;
       
     } else if (priority > walk->priority) {
-      walk = walk->next;
+           if (walk->next == NULL) {
+              walk->next = ptr;
+              ptr->prev = walk;
+              ptr->next = NULL;
+              return;
+           }
+           if (walk->next != NULL) {
+              walk = walk->next;
+           }
+   
     }
     
   }
