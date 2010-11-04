@@ -23,35 +23,53 @@ queue* blockQ;
 queue* suspendreadyQ;
 queue* suspendblockQ; 
 
-hist_stack* commands;
-history* global_chosen;
-hist_stack* used_commands;
+char* commands[50];
+char* cc;
+int id_com = 0;
 int id_h = 0;
 
+//Command variables used for aliasing
+char* version_c       = "version";
+char* exit_c          = "exit";
+char* show_c          = "show";
+char* pcb_c           = "pcb";
+char* help_c          = "help";
+char* clear_c         = "clear";
+char* setprompt_c     = "setprompt";
+char* hist_c          = "hist";
+char* date_c          = "date";
+char* dir_c           = "dir";
+char* block_c         = "block";
+char* unblock_c       = "unblock";
+char* suspend_c       = "suspend";
+char* resume_c        = "resume";
+char* priority_c      = "priority";
+char* alias_c         = "alias";
 int main(void) {
   pcb* fake;
 	int inputLength = 100;
 	int *lengthPtr = &inputLength;
 	char input[100];
 	int exitCode = 0;
-	history* hist;
 	init();
 	//fake->process_name = "Fake";
 	//readyQ->head = fake;
-	do {
-	  printf("Testing Info\n\n\n");
-	  printf("Index: %i\n",readyQ->index);
-	  if (readyQ->head) {
-	     printf("\tReadyQ head: %s\n", (readyQ->head)->process_name);
-	     printf("Index: %i\n", readyQ->index);
-       }   
-	     
-		printf("%s ", prompt);
-		
-		fgets(input,*lengthPtr,stdin);
-		removeNL(input);
-		    
-		exitCode = parseCommand(strcat(input, "\0"));
+	do { 
+  
+    if (cc) {
+        printf("\nHist command returned: %s\n\n", cc);
+        exitCode = parseCommand(cc);
+        cc = NULL;
+    }
+       
+    else {
+        printf("%s ", prompt);
+		    fgets(input,*lengthPtr,stdin);
+		    removeNL(input);
+		    commands[id_com] = strdup(input);
+        id_com++;   
+		    exitCode = parseCommand(strcat(input, "\0"));
+		}
 		
 		if (exitCode == 1) {
 			puts("Are you sure you want to exit? (y/n)");
@@ -75,8 +93,6 @@ void init() {
 	sys_init(MODULE_R2);
 	readyQ = initQueue(readyQ, "Ready\0");
 	blockQ = initQueue(blockQ, "Blocked\0");
-	commands->head = NULL;
-	commands->index = 0;
 	//initStruct(suspendreadyQ);
 	//initStruct(suspendblockQ);
 }
@@ -190,16 +206,15 @@ pcb* Setup_PCB(char *name, int priorityc, int classc) {
 	pcb1 = allocatePcb();
 	printf("PCB name: %s\n", name);
 	pcb1->process_name = strdup(name);
-	//sprintf("%s, %s", name, pcb1->process_name);
 	pcb1->priority = priorityc;
 	pcb1->process_class = classc;
 	pcb1->state = 101;
 	pcb1->exe_addr = NULL;
+	pcb1->next = NULL;
+	pcb1->prev = NULL;
 	printf("PCB succesfully created\n\n");
 	Insert_PCB(pcb1);
-	//printf("\nName: %s, Class: %d, State: %d\n",pcb1->process_name, pcb1->process_class,pcb1->state);
 	Show_PCB(name);
-	//printf("\nReadyQ check in setup: %s\n", (readyQ->head)->process_name);
 	return pcb1;
 }
 
@@ -262,15 +277,16 @@ void priority_insert(queue* q, pcb *ptr){
     
     if (priority <= walk->priority) {
       printf("p < w\n");
-      prev = walk->prev;
-      walk->prev = ptr->next;
       
-        if (c == 0){
-             (q->head)->prev  = ptr;
-             (q->head)->next  = NULL;
-             ptr->next        = q->head;
+        if (walk->prev == NULL){
+              printf("Walk == NULL test.\n");
+             walk->prev       = ptr;
+             walk->next       = NULL;
+             
+             ptr->next        = walk;
              ptr->prev        = NULL;
-             q->head          = ptr;
+             walk             = ptr;
+             printf("walk name: %s", walk->process_name);
              q->index++;
              return;
         }
@@ -280,15 +296,11 @@ void priority_insert(queue* q, pcb *ptr){
     
     ptr->prev = prev;
     ptr->next = walk; 
-    
-    //walk = ptr; 
-    
-    //Start right here  
+   
     q->index++;
     return;
       
     } else if (priority > walk->priority) {
-      c++;
       walk = walk->next;
     }
     
@@ -406,34 +418,6 @@ void show_ready(){
 	return NULL;
 }
 
-//#############History Functions###############
-
-history* setup_hist(int id, char* com) {
-
-    history* temp;
-    temp = (history*)sys_alloc_mem(sizeof(history));
-    temp->id = id;
-    temp->command = strdup(com);
-    temp->next == NULL;
-    
-    return temp;
-}
-
-history* pop(hist_stack* stack_h) {
-
-   history* temp; 
-   temp = stack_h->head;
-   stack_h->head = (stack_h->head->next);
-   
-   return temp; 
-}
-
-void push(hist_stack* stack_h, history* new_com) {
-    new_com->next = stack_h->head;
-    stack_h->head = new_com;
-    stack_h->index++;
-    return;
-}
 
 
 //NOTE: a return value other than 0 will result in program exit
@@ -456,59 +440,154 @@ int parseCommand(char *commandString) {
 
 //	printf("command: %s\narg1: %s\narg2: %s\narg3: %s\narg4: %s\n", command,arg1,arg2,arg3,arg4); //XXX: DEBUG
 	if (command == NULL) return 0; //if no command given, simply return...since it's not really an issue
-	if (strcmp(command,"help") == 0) {
+	if (strcmp(command,help_c) == 0) {
 		help(arg1);
 		return 0;
 	}
-	if (strcmp(command,"version") == 0) {
-		version();
+	if (strcmp(command,version_c) == 0) {
+		ver();
 		return 0;
 	}
-	if (strcmp(command,"clear") == 0) {
+	if (strcmp(command,clear_c) == 0) {
 		clearScreen();
 		return 0;
 	}
+	if (strcmp(command,alias_c) == 0) {
+	   if (arg1 == NULL || arg2 == NULL) {                   //Check args
+        printf("Alias function requries two arguments.\n");
+        return 0;
+     }
+     
+     if (strcmp(arg1, alias_c) == 0) {
+        printf("Alias function can not be aliased. Its just too confusing.\n");
+        return 0;
+     }
+     
+     if (command_check(arg2) == 0) {
+        return 0;
+     }
+     
+     if (strcmp(arg1,"version") == 0) {                   //Check version
+        version_c = strdup(arg2);
+        return 0;
+     }
+     
+     if (strcmp(arg1,"exit") == 0) {
+        exit_c = strdup(arg2);
+        return 0;
+     } 
+     
+     if (strcmp(arg1,"clear") == 0) {
+        clear_c = strdup(arg2);
+        return 0;
+     }
+     
+     if (strcmp(arg1,"help") == 0) {
+        help_c = strdup(arg2);
+        return 0;
+     }
+     
+     if (strcmp(arg1,"pcb") == 0) {
+        pcb_c = strdup(arg2);
+        return 0;
+     }
+     
+     if (strcmp(arg1,"show") == 0) {
+        show_c = strdup(arg2);
+        return 0;
+     }
+     
+     if (strcmp(arg1,"block") == 0) {
+        block_c = strdup(arg2);
+        return 0;
+     }
+     
+     if (strcmp(arg1,"setprompt") == 0) {
+        setprompt_c = strdup(arg2);
+        return 0;
+     }
+     
+     if (strcmp(arg1,"hist") == 0) {
+        hist_c = strdup(arg2);
+        return 0;
+     }
+     
+     if (strcmp(arg1,"date") == 0) {
+        date_c = strdup(arg2);
+        return 0;
+     }
+     
+     if (strcmp(arg1,"dir") == 0) {
+        dir_c = strdup(arg2);
+        return 0;
+     }
+     
+     if (strcmp(arg1,"unblock") == 0) {
+        unblock_c = strdup(arg2);
+        return 0;
+     }
+     
+     if (strcmp(arg1,"suspend") == 0) {
+        suspend_c = strdup(arg2);
+        return 0;
+     }
+     
+     if (strcmp(arg1,"resume") == 0) {
+        resume_c = strdup(arg2);
+        return 0;
+     }
+     
+     if (strcmp(arg1,"priority") == 0) {
+        priority_c = strdup(arg2);
+        return 0;
+     }
+     
+     else 
+      return 0;
+  }
 	if (strcmp(command,"cd") == 0) {
 		if (arg1 == NULL) printf("cd requires a path\n");
 		else changeDir(arg1);
 		return 0;
 	}
-	if (strcmp(command, "setprompt") == 0) {
+	if (strcmp(command, setprompt_c) == 0) {
 		if (arg1 == NULL) puts("Prompt argument cannot be blank");
 		else if (strlen(arg1) > 20) puts("Prompt argument must be 20 characters or less");
 		else setPrompt(arg1);
 		return 0;
 	}
 	
-	if (strcmp(command, "hist") == 0) {
+	if (strcmp(command, hist_c) == 0) {
 	     int inputLength = 100;
 	     int *lengthPtr = &inputLength;
-	     char input[100];             
+	     char input[100]; 
+       int choice;           
 	     int exitcode = 0;
-	     history* chosen;
-    do {
-        printf("\nHistory of commands\n\n-hist> ");
-        fgets(input, *lengthPtr, stdin);
-        removeNL(input);
-        printf("input: %s", input);
-        if (strcmp(input, "n") == 0) {
-          chosen = pop(commands);
-          printf("%s",chosen->command);
-          push(used_commands, chosen);
-        }
-        else if (strcmp(input, "s") == 0){
-          push(commands,chosen);
-          global_chosen = chosen;
-          exitcode = 1;
-        }
-        else if (strcmp(input, "q") == 0) {
-           exitcode = 1;
-        }
-    } while (exitcode == 0);   
-    
+	     int i = 0;
+	     
+	     while (i < id_com) {
+          printf("%d: %s\n",i+1,commands[i]);
+          i++;
+       }
+	     
+	     do {
+          printf("\nhist> ");
+          fgets(input,*lengthPtr,stdin);
+          removeNL(input);
+          if (strcmp(input, "q") == 0) {
+              exitcode = 1;
+              return 0;
+          }
+          else {
+              choice = atoi(input);
+              cc = strdup(commands[choice-1]);
+              exitcode = 1;
+          }
+       } while (exitcode == 0);
+       return 0;
   }
 	
-	if (strcmp(command,"date") == 0) {
+	if (strcmp(command,date_c) == 0) {
 		if (arg1 == NULL) {
 			displayDate(); //if the user wants to display the date
 			return 0;
@@ -521,12 +600,12 @@ int parseCommand(char *commandString) {
 		}
 		return 0;
 	}
-	if (strcmp(command,"dir") == 0) {
+	if (strcmp(command,dir_c) == 0) {
 		listDir();
 		return 0;
 	}
 	
-	if (strcmp(command, "pcb") == 0) {
+	if (strcmp(command, pcb_c) == 0) {
 		if (arg1 == NULL) {
 			puts("You must define whether you are creating(-c) or deleting(-d) a pcb");
 			return 0;
@@ -565,7 +644,7 @@ int parseCommand(char *commandString) {
     }
     }
   
-  if (strcmp(command, "block") == 0) {
+  if (strcmp(command, block_c) == 0) {
     if (arg1 == NULL) {
       printf("block command requires name argument\n");
       return 0;
@@ -577,7 +656,7 @@ int parseCommand(char *commandString) {
     }
   }
   
-  if (strcmp(command, "unblock") == 0) {
+  if (strcmp(command, unblock_c) == 0) {
     if (arg1 == NULL) {
       printf("Unblock command requires a name\n");
       return 0;
@@ -589,7 +668,7 @@ int parseCommand(char *commandString) {
     }
   }
   
-  if (strcmp(command, "suspend") == 0) {
+  if (strcmp(command, suspend_c) == 0) {
     if (arg1 == NULL) {
       printf("Suspend requires a name\n");
       return 0;
@@ -600,7 +679,7 @@ int parseCommand(char *commandString) {
     }
   }
   
-  if (strcmp(command, "resume") == 0) {
+  if (strcmp(command, resume_c) == 0) {
     if (arg1 == NULL) {
       printf("Resume requires a name\n");
       return 0;
@@ -611,7 +690,7 @@ int parseCommand(char *commandString) {
     }
   }
   
-  if (strcmp(command, "priority") == 0) {
+  if (strcmp(command, priority_c) == 0) {
     if (arg1 == NULL) {
       printf("priority command requires option operation -c\n");
       return 0;
@@ -641,7 +720,7 @@ int parseCommand(char *commandString) {
     }
   }
   
-  if (strcmp(command, "show") == 0) {
+  if (strcmp(command, show_c) == 0) {
     if (arg1 == NULL) {
       printf("show command requires an argument: -p(show PCB), -a(show all), -r(show ready), -b(show blocked)\n");
       return 0;
@@ -698,7 +777,7 @@ int parseCommand(char *commandString) {
   }
   
 	
-	if (strcmp(command,"exit") == 0) {
+	if (strcmp(command,exit_c) == 0) {
 		return 1;
 	}
 	printf("%s is not a valid command. For a list of valid commands, type 'help'\n", command);
@@ -898,9 +977,84 @@ void dispatch(){
 }
 */
 
+int command_check(char* name) {
+     int check = 1;
+     if (strcmp(name,alias_c) == 0) {
+        printf("Alias command may not be aliased.\n");
+        return 0;
+     }
+     
+     if (strcmp(name,version_c) == 0) {                   //Check version
+        check = 0;
+     }
+     
+     if (strcmp(name,exit_c) == 0) {
+        check = 0;
+     } 
+     
+     if (strcmp(name,clear_c) == 0) {
+        check = 0;
+     }
+     
+     if (strcmp(name,help_c) == 0) {
+        check = 0;
+     }
+     
+     if (strcmp(name,pcb_c) == 0) {
+        check = 0;
+     }
+     
+     if (strcmp(name,show_c) == 0) {
+        check = 0;
+     }
+     
+     if (strcmp(name,block_c) == 0) {
+        check = 0;
+     }
+     
+     if (strcmp(name,setprompt_c) == 0) {
+        check = 0;
+     }
+     
+     if (strcmp(name,hist_c) == 0) {
+        check = 0;
+     }
+     
+     if (strcmp(name,date_c) == 0) {
+        check = 0;
+     }
+     
+     if (strcmp(name,dir_c) == 0) {
+        check = 0;
+     }
+     
+     if (strcmp(name,unblock_c) == 0) {
+        check = 0;
+     }
+     
+     if (strcmp(name,suspend_c) == 0) {
+        check = 0;
+     }
+     
+     if (strcmp(name,resume_c) == 0) {
+        check = 0;
+     }
+     
+     if (strcmp(name,priority_c) == 0) {
+        check = 0;
+     }
+     if (check == 0) {
+        printf("Command: %s is already taken, please chose another.\n",name);
+        return check;
+     }
+     else {
+        printf("\nCommand available.\n\n");
+        return check;
+     }
+}
 
-void version () {
-	printf("This is the version #1.1.33 of GeckOs\n");
+void ver () {
+	printf("This is the version #2.4.65 of GeckOs\n");
 	printf("Module #R2\n");
 	printf("Last Modified: 10/08/2010\n");
 }
