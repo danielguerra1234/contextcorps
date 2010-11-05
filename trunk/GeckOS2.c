@@ -94,8 +94,8 @@ void init() {
 	sys_init(MODULE_R2);
 	readyQ = initQueue(readyQ, "Ready\0");
 	blockQ = initQueue(blockQ, "Blocked\0");
-	//initStruct(suspendreadyQ);
-	//initStruct(suspendblockQ);
+	suspendreadyQ = initQueue(suspendreadyQ, "Suspended Ready\0");
+	suspendblockQ = initQueue(suspendblockQ, "Suspended Blocked\0");
 }
 
 //Structure functions for PCB and QUEUE
@@ -173,8 +173,15 @@ pcb *allocatePcb(){
 }
 
 void Free_PCB(pcb *ptr) { //pcb pointer
- sys_free_mem(ptr->stack_base);
- sys_free_mem(ptr);
+pcb* temp;
+  temp = Find_PCB(ptr->process_name);
+  if (temp == NULL){
+      printf("PCB not found.\n");
+      return 0;
+  } else {
+       sys_free_mem(ptr->stack_base);
+       sys_free_mem(ptr);
+  }
 
 }
    
@@ -225,23 +232,64 @@ pcb* Find_PCB(char *name){
    walk = readyQ->head; 
 	 
 	 if (walk == NULL) {
-    printf("PCB not available.\n");
-    return NULL;
+        printf("PCB not available.\n");
+        return NULL;
     }
     
 	 while(walk != NULL) {
-	  check = check + 1;
-	 // printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
-	  if (check == 25) {
-      break;
-    }
-		if (strcmp(walk->process_name,name) == 0) {
-      return walk;
-      }
-      
-    walk = walk->next;
-    }  
-    return NULL;
+    	  check = check + 1;
+    	 // printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+    	  if (check == 25) {
+          break;
+        }
+    		if (strcmp(walk->process_name,name) == 0) {
+          return walk;
+        }
+          
+        walk = walk->next;
+  }
+  walk = blockQ->head;
+  while(walk != NULL) {
+    	  check = check + 1;
+    	 // printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+    	  if (check == 25) {
+          break;
+        }
+    		if (strcmp(walk->process_name,name) == 0) {
+          return walk;
+        }
+          
+        walk = walk->next;
+  }
+  
+  walk = suspendblockQ->head;
+  while(walk != NULL) {
+    	  check = check + 1;
+    	 // printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+    	  if (check == 25) {
+          break;
+        }
+    		if (strcmp(walk->process_name,name) == 0) {
+          return walk;
+        }
+          
+        walk = walk->next;
+  }
+  
+  walk = suspendreadyQ->head;
+  while(walk != NULL) {
+    	  check = check + 1;
+    	 // printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+    	  if (check == 25) {
+          break;
+        }
+    		if (strcmp(walk->process_name,name) == 0) {
+          return walk;
+        }
+          
+        walk = walk->next;
+  }
+  return NULL;
 }
 
 void priority_insert(queue* q, pcb *ptr){
@@ -297,7 +345,7 @@ void priority_insert(queue* q, pcb *ptr){
             ptr->prev = walk->prev;
 	    temp->next = ptr;
 	    walk->prev = ptr;
-            
+             q->index++;
             return;
             
         }  
@@ -309,6 +357,7 @@ void priority_insert(queue* q, pcb *ptr){
 	      walk->next = ptr;
 	      ptr->prev = walk;
               ptr->next = NULL;
+              q->index++;
               return;
            }
            if (walk->next != NULL) {
@@ -355,15 +404,55 @@ void Insert_PCB(pcb* pcb1){
 
 
 pcb* Remove_PCB(pcb *pcb1){
+  queue* q;
   pcb* prev;
   pcb* next;
-  prev= pcb1->prev;
-  pcb1->prev= NULL;
-  next=pcb1->next;
-  pcb1->next=NULL;
-  next->prev= prev;
-  prev->next= next;
-  return pcb1;
+  int state;
+  
+  state = pcb1->state;
+  
+  if (state == RUNNING || state == READY) {
+      q = readyQ;  
+  } else if (state == BLOCKED) {
+      q = blockQ;
+  }
+  
+  if (strcmp(q->head->process_name,pcb1->process_name) == 0) {//pcb1 is head of queue
+      next = pcb1->next;
+      
+      if (next->next == NULL){ //only one queue
+          next->next == NULL;
+      }
+      
+      next->prev == 0;
+      q->head = next;
+      
+      pcb1->next = NULL;
+      pcb1->prev = NULL;
+      return;
+  } else {
+      if (pcb1->next == NULL) {
+          prev = pcb1->prev;
+          
+          prev->next = NULL;
+          
+          pcb1->next = NULL;
+          pcb1->prev = NULL;
+          return;
+      } else {
+          prev = pcb1->prev;
+          next = pcb1->next;
+          
+          prev->next = next;
+          next->prev = prev;
+          
+          pcb1->next = NULL;
+          pcb1->prev = NULL;
+          return;  
+      }
+      
+  }
+  return 0; 
 }
 
 
@@ -712,11 +801,14 @@ int parseCommand(char *commandString) {
 		}
 		if (strcmp(arg1, "-d") == 0) {
 		  if (arg2 == NULL) {
-			puts("Deleting a pcb requires a name");
+			puts("Deleting a pcb requires a pcb name.\n");
 			return 0;
 			} else {
 				printf("Deleting pcb '%s'\n",arg2);
-				Free_PCB(Find_PCB(arg2));
+
+				Remove_PCB(Find_PCB(arg2));
+				Free_PCB(arg2);
+				
 				return 0;
 			}
 		}
@@ -970,7 +1062,7 @@ void changeDate(char *yearc, char *monthc, char *dayc) {
 		  displayDate();
 	}
 }
-
+/*
 pcb* move_pcb(pcb* ptr){
 
 	pcb* head;
@@ -978,7 +1070,7 @@ pcb* move_pcb(pcb* ptr){
 	head->state= RUNNING; //if it doesn't work use integer: actual number
 	return (head);
 
-}
+} /*
  /*
 void interrupt sys_call() {
     params* param_p;
