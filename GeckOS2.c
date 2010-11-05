@@ -430,7 +430,82 @@ void show_ready(){
 		 }
 	return NULL;
 }
+void block(char* pcb_name){
+	pcb* ptr;
+	ptr= find_PCB(pcb_name);
+	if(ptr != NULL)
+	{
+		ptr->state= 102;
+		remove_PCB(ptr);
+		insert_PCB(ptr);
+		printf("PCB is now blocked");
+	}
+	else
+		printf("PCB not found");
+}
 
+
+void unblock(char* pcb_name){
+	pcb* ptr;
+	ptr= find_PCB(pcb_name);
+	if(ptr != NULL)
+	{
+		ptr->state= 101;
+		remove_PCB(ptr);
+		insert_PCB(ptr);
+		printf("PCB is now unblocked");
+	}
+	else	
+		printf("PCB not found");
+}
+
+void suspend(char* name){
+	pcb* ptr;
+	ptr= find_PCB(pcb_name);
+	if(ptr != NULL)
+	{	
+		if(ptr->state= 101)
+		{
+		ptr->state= 103;
+		remove_PCB(ptr);
+		insert_PCB(ptr);
+		printf("PCB is now suspended");
+		}
+		if(ptr->state= 102)
+		{
+		ptr->state= 104;
+		remove_PCB(ptr);
+		insert_PCB(ptr);
+		printf("PCB is now suspended");
+		}
+	}
+	else	
+		printf("PCB not found");
+}
+
+void resume(char* name){
+	pcb* ptr;
+	ptr= find_PCB(pcb_name);
+	if(ptr != NULL)
+	{
+		if (ptr->state= 103)
+		{
+			ptr->state= 101;
+			remove_PCB(ptr);
+			insert_PCB(ptr);
+			printf("PCB has now resumed");
+		}
+		if(ptr->state=104)
+		{
+			ptr->state= 102;
+			remove_PCB(ptr);
+			insert_PCB(ptr);
+			printf("PCB has now resumed");
+		}
+	}
+	else	
+		printf("PCB not found");
+}
 
 
 //NOTE: a return value other than 0 will result in program exit

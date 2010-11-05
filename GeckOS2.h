@@ -28,7 +28,7 @@
 #define READY 101
 #define BLOCKED 102
 #define SUSPENDED_READY 103
-#define SUSPENDED_BLOCKED 04
+#define SUSPENDED_BLOCKED 104
 
 typedef struct{
     char stack[1024];
@@ -132,7 +132,10 @@ void Show_PCB(char*);
 void Show_All();
 void Show_Ready();
 void Show_Blocked();
-
+void block(char* name);
+void unblock(char* name);
+void suspend(char* name);
+void resume(char* name);
 void testn_R3();
 
 
