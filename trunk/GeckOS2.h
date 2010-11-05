@@ -156,6 +156,7 @@ void setPrompt(char *s);
 pcb* move_pcb(pcb* ptr);
 void show_all();
 void show_ready();
+void show_blocked();
 int command_check(char*);
 //History Functions
 
