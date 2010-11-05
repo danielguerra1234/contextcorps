@@ -138,7 +138,7 @@ void blocked_add(pcb *node) {
 		}
 		else if (current->priority < node->priority) {
 			puts("start here");
-        } 
+	}
     }
 }
 /*
@@ -281,10 +281,10 @@ void priority_insert(queue* q, pcb *ptr){
       
         if (walk->prev == NULL && c == 0){
               //printf("Walk == NULL test.\n");
-             walk->prev       = ptr;
+	     walk->prev       = ptr;
              walk->next       = NULL;
              
-             ptr->next        = walk;
+	     ptr->next        = walk;
              ptr->prev        = NULL;
              q->head          = ptr;
              printf("walk name: %s\n\n", walk->process_name);
@@ -292,11 +292,11 @@ void priority_insert(queue* q, pcb *ptr){
              //c++;
              break;
         } else {
-            temp = walk->prev;
-            ptr->next = walk;
+	    temp = walk->prev;
+	    ptr->next = walk;
             ptr->prev = walk->prev;
-            temp->next = ptr;
-            walk->prev = ptr;
+	    temp->next = ptr;
+	    walk->prev = ptr;
             
             return;
             
@@ -306,13 +306,13 @@ void priority_insert(queue* q, pcb *ptr){
       
     } else if (priority > walk->priority) {
            if (walk->next == NULL) {
-              walk->next = ptr;
-              ptr->prev = walk;
+	      walk->next = ptr;
+	      ptr->prev = walk;
               ptr->next = NULL;
               return;
            }
            if (walk->next != NULL) {
-              walk = walk->next;
+	      walk = walk->next;
            }
    
     }
@@ -426,18 +426,18 @@ void show_ready(){
     
         printf("Pcb: %s\n",walk->process_name); 
       
-        walk = walk->next;  
+	walk = walk->next;
 		 }
 	return NULL;
 }
 void block(char* pcb_name){
 	pcb* ptr;
-	ptr= find_PCB(pcb_name);
+	ptr= Find_PCB(pcb_name);
 	if(ptr != NULL)
 	{
 		ptr->state= 102;
-		remove_PCB(ptr);
-		insert_PCB(ptr);
+		Remove_PCB(ptr);
+		Insert_PCB(ptr);
 		printf("PCB is now blocked");
 	}
 	else
@@ -447,35 +447,35 @@ void block(char* pcb_name){
 
 void unblock(char* pcb_name){
 	pcb* ptr;
-	ptr= find_PCB(pcb_name);
+	ptr= Find_PCB(pcb_name);
 	if(ptr != NULL)
 	{
 		ptr->state= 101;
-		remove_PCB(ptr);
-		insert_PCB(ptr);
+		Remove_PCB(ptr);
+		Insert_PCB(ptr);
 		printf("PCB is now unblocked");
 	}
 	else	
 		printf("PCB not found");
 }
 
-void suspend(char* name){
+void suspend(char* pcb_name){
 	pcb* ptr;
-	ptr= find_PCB(pcb_name);
+	ptr= Find_PCB(pcb_name);
 	if(ptr != NULL)
 	{	
 		if(ptr->state= 101)
 		{
 		ptr->state= 103;
-		remove_PCB(ptr);
-		insert_PCB(ptr);
+		Remove_PCB(ptr);
+		Insert_PCB(ptr);
 		printf("PCB is now suspended");
 		}
 		if(ptr->state= 102)
 		{
 		ptr->state= 104;
-		remove_PCB(ptr);
-		insert_PCB(ptr);
+		Remove_PCB(ptr);
+		Insert_PCB(ptr);
 		printf("PCB is now suspended");
 		}
 	}
@@ -483,23 +483,23 @@ void suspend(char* name){
 		printf("PCB not found");
 }
 
-void resume(char* name){
+void resume(char* pcb_name){
 	pcb* ptr;
-	ptr= find_PCB(pcb_name);
+	ptr= Find_PCB(pcb_name);
 	if(ptr != NULL)
 	{
 		if (ptr->state= 103)
 		{
 			ptr->state= 101;
-			remove_PCB(ptr);
-			insert_PCB(ptr);
+			Remove_PCB(ptr);
+			Insert_PCB(ptr);
 			printf("PCB has now resumed");
 		}
 		if(ptr->state=104)
 		{
 			ptr->state= 102;
-			remove_PCB(ptr);
-			insert_PCB(ptr);
+			Remove_PCB(ptr);
+			Insert_PCB(ptr);
 			printf("PCB has now resumed");
 		}
 	}
