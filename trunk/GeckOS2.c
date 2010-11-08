@@ -91,11 +91,12 @@ void init() {
 	clearScreen();
 	puts(greeting);
 	dp = opendir ("./");
-	sys_init(MODULE_R2);
+	sys_init(MODULE_R3);
 	readyQ = initQueue(readyQ, "Ready\0");
 	blockQ = initQueue(blockQ, "Blocked\0");
 	suspendreadyQ = initQueue(suspendreadyQ, "Suspended Ready\0");
 	suspendblockQ = initQueue(suspendblockQ, "Suspended Blocked\0");
+	sys_set_vec(sys_call);  
 }
 
 //Structure functions for PCB and QUEUE
@@ -1131,26 +1132,35 @@ void changeDate(char *yearc, char *monthc, char *dayc) {
 	}
 }
 
+	
  
-void interrupt sys_call() {
+int interrupt sys_call() {
     params* param_p;
     pcb* cop;
+    int result;
     //param_p = ((MK_FP(_SS,_SP) + sizeof(context)));
     cop-> stack_top = (unsigned char *)MK_FP(_SS, _SP);
     param_p = (params*)(cop->stack_top + sizeof(context));
 
     if (param_p->op_code == IDLE) {
         printf("Call routine to set process into ready queue");
+        unblock(cop); //puts the process in the ready queue by changing its state
+		result=0;
 	return 0;
     } else if (param_p->op_code == EXIT) {
-	printf("call routine to set process to exit");
+		printf("call routine to set process to exit");
+		Delete_PCB(cop); //not sure this is really the function to call but seems so
+		result=0;
 	return 0;
     } else {
         printf("Call dispatcher to send process not available in this module");
-        return -1;
+        result= -1;
+		return -1;
     }
     
-    //dispatcher();
+    context_p->AX= result; //resetting the AX to the value returned, used later by sys_req no idea what for
+    dispatch();
+    
 }       
 
 void testn_R3(){
