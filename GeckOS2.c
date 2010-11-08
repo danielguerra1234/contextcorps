@@ -9,6 +9,7 @@
  */
             
 #include "GeckOS2.h"
+#include "procsr3.h"
 
 //Global Variables:
 DIR *dp;
@@ -1129,16 +1130,8 @@ void changeDate(char *yearc, char *monthc, char *dayc) {
 		  displayDate();
 	}
 }
-/*
-pcb* move_pcb(pcb* ptr){
 
-	pcb* head;
-	head= Remove_PCB(ptr);
-	head->state= RUNNING; //if it doesn't work use integer: actual number
-	return (head);
-
-} /*
- /*
+ 
 void interrupt sys_call() {
     params* param_p;
     pcb* cop;
@@ -1201,28 +1194,31 @@ void save_context(int n){ //takes an integer for what test number it is
 
 void dispatch(){
  	pcb* cop;
- 	//stack_p* stack;
+ 	pcb* head; //HEAD of the ready queue
  	unsigned int sp_save, ss_save;
- 	if (sp_save== NULL){
- 	  pcb* head;
-	 	ss_save = _SS;
+ 	
+ 	if (sp_save== NULL)
+ 	{
+ 	   	ss_save = _SS;
 		sp_save = _SP;
-		
 		//ask for the first element in ready queue
 		head= readyQ->head;
-		cop= move_pcb(head);
-				if(cop != NULL) { //remove the element located at the head of the queue
-				cop = head;
-				_SS = (int)cop->stack_base;
-				_SP = (int)cop->stack_top;	
-			} else {
-				cop= NULL;
-				_SS=ss_save;
-				_SP=sp_save;
-			}
-	 }
+		if(head != NULL) 
+		{
+		cop= Remove_PCB(head);
+		_SS = (int)cop->stack_base;
+		_SP = (int)cop->stack_top;
+		}
+		else
+		{
+		cop= NULL;
+		_SS=ss_save;
+		_SP=sp_save;
+		}
+ 	}
+ 	//return from the interrupt ??
 }
-*/
+
 
 int command_check(char* name) {
      int check = 1;
