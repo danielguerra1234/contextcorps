@@ -9,7 +9,7 @@
  */
             
 #include "GeckOS2.h"
-#include "procsr3.h"
+
 
 //Global Variables:
 DIR *dp;
@@ -46,6 +46,15 @@ char* suspend_c       = "suspend";
 char* resume_c        = "resume";
 char* priority_c      = "priority";
 char* alias_c         = "alias";
+char* dispatch_c      = "dispatch";
+
+unsigned int sp_save=NULL, ss_save=NULL;
+unsigned int ssnew=NULL, spnew=NULL;
+unsigned char sysStack[2048];
+
+pcb* cop;
+params* param_p;
+context* context_p;
 
 int main(void) {
   pcb* fake;
@@ -53,23 +62,30 @@ int main(void) {
 	int *lengthPtr = &inputLength;
 	char input[100];
 	int exitCode = 0;
+	int loopbreaker = 0;
 	init();
 	//fake->process_name = "Fake";
 	//readyQ->head = fake;
 	do { 
   
+    if (loopbreaker >= 200) {
+        printf("Infinite Loop Error. Aborting.\n");
+    }
+  
     if (cc) {
         printf("\nHist command returned: %s\n\n", cc);
         exitCode = parseCommand(cc);
         cc = NULL;
+        loopbreaker = 0;
     }
        
     else {
         printf("%s ", prompt);
 		    fgets(input,*lengthPtr,stdin);
 		    removeNL(input);
-		    commands[id_com] = strdup(input);
-        id_com++;   
+		    strcpy(commands[id_com], input);
+        id_com++;
+        loopbreaker++;   
 		    exitCode = parseCommand(strcat(input, "\0"));
 		}
 		
@@ -120,8 +136,6 @@ unsigned char buffer[SIZE];
 //#############Queue Functions#################
 //Queue function error codes start in the 300
 
-
-
 void blocked_add(pcb *node) {
     if (blockQ->nodes == 0) {
 		blockQ->head = node;
@@ -167,9 +181,9 @@ pcb *allocatePcb(){
 	pcb *pcb_ptr;
 	
 	pcb_ptr = (pcb*)sys_alloc_mem(size);//use sys_alloc_mem
-	address = sys_alloc_mem(1024);
-	pcb_ptr->stack_base = address;
-	pcb_ptr->stack_top = pcb_ptr->stack_base + size;
+
+	pcb_ptr->stack_base = sys_alloc_mem(1024);
+	pcb_ptr->stack_top = pcb_ptr->stack_base + 1024 - sizeof(context);
 	return (pcb_ptr);
 }
 
@@ -214,7 +228,7 @@ pcb* Setup_PCB(char *name, int priorityc, int classc) {
 	}
 	pcb1 = allocatePcb();
 	//printf("PCB name: %s\n", name);
-	pcb1->process_name = strdup(name);
+	strcpy(pcb1->process_name, name);
 	pcb1->priority = priorityc;
 	pcb1->process_class = classc;
 	pcb1->state = 101;
@@ -227,74 +241,108 @@ pcb* Setup_PCB(char *name, int priorityc, int classc) {
 	return pcb1;
 }
 
-pcb* Find_PCB(char *name){
-	 pcb* walk;
-	 int check;
-   walk = readyQ->head; 
-	 
-	 if (walk == NULL) {
-        printf("PCB not available.\n");
-        return NULL;
-    }
+pcb* Find_PCB_Ready(char* name) {
+    pcb* walk;
+    int check;
     
-	 while(walk != NULL) {
-    	  check = check + 1;
-    	 // printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
-    	  if (check == 25) {
-          break;
-        }
-    		if (strcmp(walk->process_name,name) == 0) {
-          return walk;
-        }
-          
-        walk = walk->next;
+    walk = readyQ->head;
+      //while(walk != NULL) {
+            check = check + 1;
+        	  printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+            if (check > 50)
+                //break; 
+                printf("Print break");
+                      	  
+        		if (strcmp(walk->process_name,name) == 0) {
+              return walk;
+            } else
+                walk = walk->next;
+      //}
+}
+
+pcb* Find_PCB_Blocked(char* name) {
+    pcb* walk;
+    int check;
+    walk = blockQ->head;
+      check = 0;
+      while(walk != NULL) {
+        	  check = check + 1;
+        	  printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+        	  if (check == 25) {
+        	    printf("Infinite Looping Error. Aborted.\n");
+              break;
+            }
+        		if (strcmp(walk->process_name,name) == 0) {
+              return walk;
+            }
+              
+            walk = walk->next;
+      }
+}
+
+pcb* Find_PCB_Suspended_Ready(char* name) {
+    pcb* walk;
+    int check;
+    walk = suspendreadyQ->head;
+      check = 0;
+      while(walk != NULL) {
+        	  check = check + 1;
+        	  printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+        	  if (check == 25) {
+        	    printf("Infinite Looping Error. Aborted.\n");
+              break;
+            }
+        		if (strcmp(walk->process_name,name) == 0) {
+              return walk;
+            }
+              
+            walk = walk->next;
+      }
+}
+
+pcb* Find_PCB_Suspended_Blocked(char* name) {
+    pcb* walk;
+    int check;
+    walk = suspendblockQ->head;
+      check = 0;
+      while(walk != NULL) {
+        	  check = check + 1;
+        	  printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+        	  if (check == 25) {
+        	    printf("Infinite Looping Error. Aborted.\n");
+              break;
+            }
+        		if (strcmp(walk->process_name,name) == 0) {
+              return walk;
+            }
+              
+            walk = walk->next;
+      }
+}
+
+pcb* Find_PCB(char *name){
+	pcb* ptr;
+	
+	ptr = Find_PCB_Ready(name);
+	/*
+	if (ptr == NULL) {
+      ptr = Find_PCB_Blocked(name);   
   }
-  walk = blockQ->head;
-  check = 0;
-  while(walk != NULL) {
-    	  check = check + 1;
-    	 // printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
-    	  if (check == 25) {
-          break;
-        }
-    		if (strcmp(walk->process_name,name) == 0) {
-          return walk;
-        }
-          
-        walk = walk->next;
+
+  if (ptr == NULL) {
+      ptr = Find_PCB_Suspended_Ready(name);
   }
   
-  walk = suspendblockQ->head;
-  check = 0;
-  while(walk != NULL) {
-    	  check = check + 1;
-    	 // printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
-    	  if (check == 25) {
-    	    printf("Infinite Looping Error. Aborted.\n");
-          break;
-        }
-    		if (strcmp(walk->process_name,name) == 0) {
-          return walk;
-        }
-          
-        walk = walk->next;
+  if (ptr == NULL) {
+      ptr = Find_PCB_Suspended_Blocked(name);
   }
   
-  walk = suspendreadyQ->head;
-  check = 0;
-  while(walk != NULL) {
-    	  check = check + 1;
-    	 // printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
-    	  if (check == 25) {
-          break;
-        }
-    		if (strcmp(walk->process_name,name) == 0) {
-          return walk;
-        }
-          
-        walk = walk->next;
-  }
-  return NULL;
+  if (ptr == NULL) {
+      printf("PCB %s not available", name);
+      return NULL;
+  } */
+  return ptr;
+	
 }
 
 void priority_insert(queue* q, pcb *ptr){
@@ -375,36 +423,59 @@ void priority_insert(queue* q, pcb *ptr){
 }
 
 void FIFO_insert(queue* q, pcb *ptr){
-  if (sizeof(q)>=buffer) printf("You cannot insert in this queue, it is already full\n");
-  else {
-    (q->tail)->next= ptr;
-    ptr->prev=q->tail;
-    q->tail= ptr;
+  if (sizeof(q)>=buffer) {
+    printf("You cannot insert in this queue, it is already full\n");
   }
-
+  else {
+      if (q->head == NULL) {
+          //printf("Queue head in Fifo check.\n\n");
+          ptr->next   = NULL;
+          ptr->prev   = NULL;
+          
+          q->head     = ptr;
+          q->tail     = ptr;
+      } else if ((q->head)->next == NULL) {
+          //printf("Queue head is 1 in Fifo check.\n\n");
+          ptr->next   = NULL;
+          ptr->prev   = q->head;
+          
+          (q->head)->next = ptr;
+          q->tail         = ptr;
+      }else {
+          //printf("Queue head many in Fifo check.\n\n");
+          (q->tail)->next = ptr;
+          ptr->prev       = q->tail;
+          q->tail         = ptr;
+    }
+  }
 }
 
 void Insert_PCB(pcb* pcb1){
   int state;
   state = pcb1->state;
+  //printf("Testing state before if statements in insert. state: %d\n\n", pcb1->state);
   
-  if (state == RUNNING || state == READY)
+  if (state == 100 || state == 101) {
     priority_insert(readyQ, pcb1);
-    //printf("ReadyQ name: %s Head: %s\n", readyQ->name, (readyQ->head)->process_name);
+    //printf("ReadyQ name: %s Head: %s\n\n", readyQ->name, (readyQ->head)->process_name);
     return;
-    
-  if (state == BLOCKED)
-    priority_insert(blockQ, pcb1);
+  }  
+  
+  if (state == 102) {
+    //printf("Testing Blocked State on insert.\n\n");
+    FIFO_insert(blockQ, pcb1);
     return;
-    
-  if(state == SUSPENDED_READY)
+  }  
+  
+  if(state == SUSPENDED_READY) {
     FIFO_insert(suspendreadyQ, pcb1);
     return;
-    
-  if(state == SUSPENDED_BLOCKED)
+  }  
+  
+  if(state == SUSPENDED_BLOCKED) {
     FIFO_insert(suspendblockQ, pcb1);
     return;
-  
+  }
 }
 
 
@@ -416,7 +487,7 @@ pcb* Remove_PCB(pcb *pcb1){
   
   state = pcb1->state;
   
-  if (state == RUNNING || state == READY) {
+  if (state == READY) {
       q = readyQ;  
   } else if (state == BLOCKED) {
       q = blockQ;
@@ -425,37 +496,33 @@ pcb* Remove_PCB(pcb *pcb1){
   if (strcmp(q->head->process_name,pcb1->process_name) == 0) {//pcb1 is head of queue
       next = pcb1->next;
       
-      if (next->next == NULL){ //only one queue
-          next->next == NULL;
-      }
-      
-      next->prev == 0;
-      q->head = next;
-      
-      pcb1->next = NULL;
-      pcb1->prev = NULL;
-      return;
-  } else {
-      if (pcb1->next == NULL) {
-          prev = pcb1->prev;
-          
-          prev->next = NULL;
-          
+      if (next == NULL){ //only one queue
+          next->prev = NULL;
+          q->head = NULL;
           pcb1->next = NULL;
           pcb1->prev = NULL;
-          return;
-      } else {
+          return pcb1;
+      }
+  } else {
+      if (pcb1->next = NULL && pcb1->prev != NULL){
           prev = pcb1->prev;
+                
+          prev->next = NULL;
+          pcb1->next = NULL;
+          pcb1->prev = NULL;
+          return pcb1;  
+      } else if (pcb1->next != NULL && pcb1->prev != NULL) {
           next = pcb1->next;
+          prev = pcb1->prev;
           
           prev->next = next;
           next->prev = prev;
           
           pcb1->next = NULL;
           pcb1->prev = NULL;
-          return;  
-      }
-      
+          
+          return pcb1;
+      }    
   }
   return 0; 
 }
@@ -505,11 +572,11 @@ void Show_PCB(char* name) {
 void show_ready(){
 	 pcb* walk;
 	 int check;
-   walk = readyQ->head; 
+   	 walk = readyQ->head; 
 	 
 	 if (walk == NULL) {
-    printf("Queue not available or is empty.\n");
-    return NULL;
+    		printf("Queue not available or is empty.\n");
+    		return NULL;
     } 
 	 while(walk != NULL) {
 	     check = check + 1;
@@ -528,7 +595,7 @@ void show_ready(){
 void show_blocked(){
 	 pcb* walk;
 	 int check;
-   walk = blockQ->head; 
+   	 walk = blockQ->head; 
 	 
 	 if (walk == NULL) {
     printf("Queue not available or is empty.\n");
@@ -594,49 +661,49 @@ void block(char* pcb_name){
 	ptr= Find_PCB(pcb_name);
 	if(ptr != NULL)
 	{
-		ptr->state= 102;
-		Remove_PCB(ptr);
-		Insert_PCB(ptr);
-		printf("PCB is now blocked");
+		Remove_PCB(ptr);      //Remove from whatever queue it is in
+		ptr->state= BLOCKED;  //change state to blocked
+		Insert_PCB(ptr);      //Insert into new queue
+		printf("PCB is now blocked\n");
 	}
-	else
-		printf("PCB not found");
+	return;
 }
 
 
 void unblock(char* pcb_name){
 	pcb* ptr;
-	ptr= Find_PCB(pcb_name);
+	ptr = Find_PCB_Blocked(pcb_name);
+	if (ptr == NULL) return;
+	
 	if(ptr != NULL)
 	{
-		ptr->state= 101;
 		Remove_PCB(ptr);
+		ptr->state= 101;
 		Insert_PCB(ptr);
 		printf("PCB is now unblocked");
 	}
-	else	
-		printf("PCB not found");
+	return;
 }
 
 void suspend(char* pcb_name){
 	pcb* ptr;
 	ptr= Find_PCB(pcb_name);
+	
 	if(ptr != NULL) {	
-		if(ptr->state= 101) {
-    		ptr->state= 103;
+		if(ptr->state= READY || ptr->state == RUNNING) {
     		Remove_PCB(ptr);
+    		ptr->state= 103;
     		Insert_PCB(ptr);
     		printf("PCB is now suspended");
 		}
-		if(ptr->state= 102) {
-    		ptr->state= 104;
+		if(ptr->state= BLOCKED) {
     		Remove_PCB(ptr);
+    		ptr->state= 104;
     		Insert_PCB(ptr);
     		printf("PCB is now suspended");
 		}
 	}
-	else	
-		printf("PCB not found");
+	return;
 }
 
 void resume(char* pcb_name){
@@ -656,8 +723,7 @@ void resume(char* pcb_name){
 			printf("PCB has now resumed");
 		}
 	}
-	else	
-		printf("PCB not found");
+	return;
 }
 
 
@@ -693,6 +759,11 @@ int parseCommand(char *commandString) {
 		clearScreen();
 		return 0;
 	}
+	if (strcmp(command,dispatch_c) == 0) {
+		testn_R3();
+		return 0;
+	}
+	
 	if (strcmp(command,alias_c) == 0) {
 	   if (arg1 == NULL || arg2 == NULL) {                   //Check args
         printf("Alias function requries two arguments.\n");
@@ -877,13 +948,13 @@ int parseCommand(char *commandString) {
 			}
 		}
 		if (strcmp(arg1, "-s") == 0) {
-      if (arg2 == NULL || arg3 == NULL) {
-        puts("Set Priority function requires PCB name and new priority.\n");
-      } else {
-        printf("Setting new priority:%d for PCB:%s",arg2,arg3);
-        Set_Priority(arg2, atoi(arg3));
-	return;
-      }
+      		  if (arg2 == NULL || arg3 == NULL) {
+       			puts("Set Priority function requires PCB name and new priority.\n");
+      		  	} else {
+        			printf("Setting new priority:%d for PCB:%s",arg2,arg3);
+        			Set_Priority(arg2, atoi(arg3));
+		return;
+      		}
       
     }
     }
@@ -1016,6 +1087,7 @@ int parseCommand(char *commandString) {
       }
       else {
         printf("calling show command with -b argument\n");
+        show_blocked();
         return 0;
       }
     }
@@ -1134,33 +1206,33 @@ void changeDate(char *yearc, char *monthc, char *dayc) {
 
 	
  
-int interrupt sys_call() {
-    params* param_p;
-    pcb* cop;
-    int result;
+void interrupt sys_call() {
     //param_p = ((MK_FP(_SS,_SP) + sizeof(context)));
+    static int result;
     cop-> stack_top = (unsigned char *)MK_FP(_SS, _SP);
+    
+    
+    ssnew = FP_SEG(&sysStack);
+    spnew = FP_OFF(&sysStack);
+    spnew += 2048;
+    _SS = ssnew;
+    _SP = spnew;
+    
     param_p = (params*)(cop->stack_top + sizeof(context));
 
     if (param_p->op_code == IDLE) {
-        printf("Call routine to set process into ready queue");
-        unblock(cop); //puts the process in the ready queue by changing its state
-		result=0;
-	return 0;
+        //printf("Call routine to set process into ready queue");
+        cop->state = READY; //puts the process in the ready queue by changing its state
+        result = 0;
     } else if (param_p->op_code == EXIT) {
-		printf("call routine to set process to exit");
-		Delete_PCB(cop); //not sure this is really the function to call but seems so
-		result=0;
-	return 0;
-    } else {
-        printf("Call dispatcher to send process not available in this module");
-        result= -1;
-		return -1;
-    }
+    		//printf("call routine to set process to exit");
+    		Free_PCB(Remove_PCB(cop)); //not sure this is really the function to call but seems so
+    		result = -1;
+    } 
     
-    context_p->AX= result; //resetting the AX to the value returned, used later by sys_req no idea what for
-    dispatch();
     
+    context_p->AX= result; //resetting the AX to the value returned, used later by sys_req no idea what for=    
+    dispatcher();
 }       
 
 void testn_R3(){
@@ -1170,10 +1242,20 @@ void testn_R3(){
 	pcb* test3;
 	pcb* test4;
 	pcb* test5;
+	context* test1con;
 	
+	//Test 1 function
 	test1 = Setup_PCB("test1", 1, one);
-	test1->exe_addr = &test1_R3;
+	test1con = (context *) test1->stack_top;
 	
+	test1con->DS = _DS;
+	test1con->ES = _ES;
+	test1con->CS = FP_SEG(&test1_R3);
+	test1con->IP = FP_OFF(&test1_R3);
+	test1con->FLAGS = 0x200;
+	
+	Insert_PCB(test1);
+	/*
 	test2 = Setup_PCB("test2", 1, one);
 	test2->exe_addr = &test2_R3;
 	
@@ -1185,8 +1267,8 @@ void testn_R3(){
 	
 	test5 = Setup_PCB("test5", 1, one);
 	test5->exe_addr = &test5_R3;
-
-
+  */
+  dispatcher();
 }
 
 void save_context(int n){ //takes an integer for what test number it is
@@ -1202,31 +1284,34 @@ void save_context(int n){ //takes an integer for what test number it is
 	context_p->FLAGS = 0x200;
 }
 
-void dispatch(){
- 	pcb* cop;
- 	pcb* head; //HEAD of the ready queue
- 	unsigned int sp_save, ss_save;
+
+
+void interrupt dispatcher(){
  	
- 	if (sp_save== NULL)
+ 	static pcb* head; //HEAD of the ready queue
+ 	
+ 	
+ 	if (sp_save == NULL)
  	{
- 	   	ss_save = _SS;
+ 	  ss_save = _SS;
 		sp_save = _SP;
 		//ask for the first element in ready queue
-		head= readyQ->head;
-		if(head != NULL) 
-		{
-		cop= Remove_PCB(head);
-		_SS = (int)cop->stack_base;
-		_SP = (int)cop->stack_top;
-		}
-		else
-		{
-		cop= NULL;
-		_SS=ss_save;
-		_SP=sp_save;
-		}
- 	}
- 	//return from the interrupt ??
+		head = readyQ->head;
+		cop = Remove_PCB(head);
+				if (cop != NULL) { //remove the element located at the head of the queue
+				cop->state = RUNNING;
+				_SS = FP_SEG(cop->stack_top);
+				_SP = FP_OFF(cop->stack_top);	
+				
+			} else {
+			
+				cop= NULL;
+				_SS=ss_save;
+				_SP=sp_save;
+				sp_save = NULL;
+				ss_save = NULL;
+			}
+	 }
 }
 
 
