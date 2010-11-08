@@ -44,7 +44,7 @@ typedef struct{
 }memory;
 
 typedef struct{
-    char *process_name;
+    char process_name[40];
     int priority;
     int state;
     
@@ -112,9 +112,9 @@ typedef struct{
     } context; 
 
 
-//void interrupt sys_call(void);
+void interrupt sys_call(void);
 void save_context();
-void dispatch();
+void interrupt dispatcher();
 
 //PCB PROTOTYPES
 pcb *allocatePcb();
@@ -122,6 +122,10 @@ void blocked_add(pcb *node);
 void Free_PCB(pcb *ptr);
 pcb* Setup_PCB(char *name, int priorityc, int classc);
 pcb* Find_PCB(char *name);
+pcb* Find_PCB_Blocked(char* name);
+pcb* Find_PCB_Ready(char* name);
+pcb* Find_PCB_Suspended_Ready(char* name);
+pcb* Find_PCB_Suspended_Blocked(char* name);
 void Insert_PCB(pcb*);
 pcb* Remove_PCB(pcb*);
 void Set_Priority(char*, int);
@@ -158,10 +162,5 @@ void show_all();
 void show_ready();
 void show_blocked();
 int command_check(char*);
-//History Functions
-
-history* setup_hist(int id, char* name);
-history* pop(hist_stack*);
-void push(hist_stack*, history*);
 
 #endif
