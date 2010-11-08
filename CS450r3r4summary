@@ -1,0 +1,71 @@
+Tasks to complete for R3
+
+Process Scheduling
+
+Commands:
+	dispatch- handles the creation of 5 pcb processes
+
+Functions:
+	dispatcher- locates next ready process and does context switching
+		PSEUDO CODE
+		if sp_save is null, 
+			ss_save = _SS 
+			sp_save = _SP 
+
+		remove the PCB at the head of the ready queue 
+
+		if a PCB was found set cop to this PCB 
+			set _SS and _SP to the PCB's stack pointer 
+
+		else 
+			set cop to NULL 
+			set _SS to ss_save 
+			set _SP to sp_save 
+			end if 
+
+		"return from interrupt"
+	system call handler- handles the calls for changes in process....handles interrupts
+
+	void interrupt sys_call(void)
+
+Tasks to complete for R4
+
+Commands:
+	dispatch- loads dispatcher the first time
+	load- load program in memory for execution
+		- very similiar to create PCB
+		- create a pcb along with parameters process name, program file, priority, directory name
+		-function steps:
+			1. call sys_check_program
+			2. call sys_alloc_mem
+			3. Load address becomes execution address
+			4. sys_load_program
+			5. setup pcb context
+			6. place is suspended queue
+		1. moves loaded program process from suspended state to ready state
+	terminate- terminate program and release pcb and program memory
+		- extension of deletepcb
+		-argurment: process name
+Functions:
+	sys_check_prog
+		-checks to see if requested program is valid
+		-determines amount of memory needed
+		-checks file format
+		-prototype: int sys_check_program (char dir_name[], char prog_name[], int *prog_len_p, int *start_offset_p); 
+			-dirname: specifies directory path to look for file
+			-prog_name: specifies the name of the exe to look for
+			-prog_len_p:specifies in bytes amount of memory necessary for program
+			-start_offset_p: type int that receives first part of load area
+	
+	sys_load_program
+		-actually loads designated program
+		-calls sys_check_prog to verify program
+		-prototype: int sys_load_program (void *load_addr, int max_size, char dir_name[],char prog_name[]);
+			load_addr: specifies the starting address of the program to be loaded
+			max_size: specifies size of memory area, if area is too small error is thrown no loading
+			dir_name: specifies directory file is located
+			prog_name: specifies program file to be loaded
+		
+
+Notes:
+	do not modify stack variables ss and sp using returning function calls.  Use tempory variables.
