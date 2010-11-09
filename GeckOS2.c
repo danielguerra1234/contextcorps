@@ -83,7 +83,8 @@ int main(void) {
         printf("%s ", prompt);
 		    fgets(input,*lengthPtr,stdin);
 		    removeNL(input);
-		    strcpy(commands[id_com], input);
+		    //strcpy(commands[id_com], input);
+		    commands[id_com] = strdup(input);
         id_com++;
         loopbreaker++;   
 		    exitCode = parseCommand(input);
@@ -235,28 +236,36 @@ pcb* Setup_PCB(char name[], int priorityc, int classc) {
 	pcb1->next = NULL;
 	pcb1->prev = NULL;
 	printf("PCB succesfully created.\n\n\n");
-	//Insert_PCB(pcb1);
+	Insert_PCB(pcb1);
 	//Show_PCB(name);
 	return pcb1;
 }
 
 pcb* Find_PCB_Ready(char* name) {
-    pcb* walk;
-    int check;
+    	 pcb* walk;
+	 int check;
+	 int i = 0;
+   walk = readyQ->head; 
+	 
+	 if (walk == NULL) {
+    		printf("Queue not available or is empty.\n");
+    		return NULL;
+    }
+     
+	 while(walk != NULL) {
+	     check = check + 1;
+	  //printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+	     if (check == 30) {
+          break;
+        }
     
-    walk = readyQ->head;
-      //while(walk != NULL) {
-            check = check + 1;
-        	  //printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
-            if (check > 50)
-                //break; 
-               // printf("Print break");
-                      	  
-        		if (strcmp(walk->process_name,name) == 0) {
-              return walk;
-            } else
-                walk = walk->next;
-      //}
+       if (strcmp(name, walk->process_name) == 0 ) 
+          return walk;
+      
+	      walk = walk->next;
+		 }
+	i = 0;
+	return NULL;
 }
 
 pcb* Find_PCB_Blocked(char* name) {
@@ -324,11 +333,11 @@ pcb* Find_PCB(char *name){
 	pcb* ptr;
 	
 	ptr = Find_PCB_Ready(name);
-	/*
+	
 	if (ptr == NULL) {
       ptr = Find_PCB_Blocked(name);   
   }
-
+  /*
   if (ptr == NULL) {
       ptr = Find_PCB_Suspended_Ready(name);
   }
@@ -340,7 +349,7 @@ pcb* Find_PCB(char *name){
   if (ptr == NULL) {
       printf("PCB %s not available", name);
       return NULL;
-  } */
+  }  */
   return ptr;
 	
 }
@@ -382,10 +391,10 @@ void priority_insert(queue* q, pcb *ptr){
       
         if (walk->prev == NULL && c == 0){
               //printf("Walk == NULL test.\n");
-	     walk->prev       = ptr;
+	            walk->prev       = ptr;
              walk->next       = NULL;
              
-	     ptr->next        = walk;
+	           ptr->next        = walk;
              ptr->prev        = NULL;
              q->head          = ptr;
             // printf("walk name: %s\n\n", walk->process_name);
@@ -416,9 +425,7 @@ void priority_insert(queue* q, pcb *ptr){
            if (walk->next != NULL) {
 	      walk = walk->next;
            }
-   
-    }
-    
+    }    
   }
 }
 
@@ -461,7 +468,7 @@ void Insert_PCB(pcb* pcb1){
     return;
   }  
   
-  if (state == 102) {
+  if (state == BLOCKED) {
     //printf("Testing Blocked State on insert.\n\n");
     FIFO_insert(blockQ, pcb1);
     return;
@@ -486,7 +493,7 @@ pcb* Remove_PCB(pcb *pcb1){
   int state;
   
   state = pcb1->state;
-  
+ // printf("Pcb name: %s\n\n\0",pcb1->process_name);
   if (state == READY) {
       q = readyQ;  
   } else if (state == BLOCKED) {
@@ -495,16 +502,18 @@ pcb* Remove_PCB(pcb *pcb1){
   
   if (strcmp(q->head->process_name,pcb1->process_name) == 0) {//pcb1 is head of queue
       next = pcb1->next;
-      
+      //printf("Pcb name 1: %s\n\n\0",pcb1->process_name);
       if (next == NULL){ //only one queue
-          next->prev = NULL;
+          //printf("Pcb name 2: %s\n\n\0",pcb1->process_name);
           q->head = NULL;
           pcb1->next = NULL;
           pcb1->prev = NULL;
           return pcb1;
       }
   } else {
+      //printf("Pcb name 3: %s\n\n\0",pcb1->process_name);
       if (pcb1->next = NULL && pcb1->prev != NULL){
+          //printf("Pcb name 4: %s\n\n\0",pcb1->process_name);
           prev = pcb1->prev;
                 
           prev->next = NULL;
@@ -512,6 +521,7 @@ pcb* Remove_PCB(pcb *pcb1){
           pcb1->prev = NULL;
           return pcb1;  
       } else if (pcb1->next != NULL && pcb1->prev != NULL) {
+          //printf("Pcb name 5: %s\n\n\0",pcb1->process_name);
           next = pcb1->next;
           prev = pcb1->prev;
           
@@ -635,13 +645,16 @@ void show_all(){
 
 void block(char* pcb_name){
 	pcb* ptr;
+	//printf("ptr name: %s\n\n\0", pcb_name);
 	ptr= Find_PCB(pcb_name);
 	if(ptr != NULL)
 	{
+	//printf("ptr name inside if: %s\n\n\0", ptr->process_name);
 		Remove_PCB(ptr);      //Remove from whatever queue it is in
-		ptr->state= BLOCKED;  //change state to blocked
+		ptr->state= BLOCKED;
+    //printf("after state change: %s\n\n\0",ptr->process_name);  //change state to blocked
 		Insert_PCB(ptr);      //Insert into new queue
-		printf("PCB is now blocked\n");
+		printf("PCB is now blocked.\n\n\0");
 	}
 	return;
 }
@@ -649,7 +662,7 @@ void block(char* pcb_name){
 
 void unblock(char* pcb_name){
 	pcb* ptr;
-	ptr = Find_PCB_Blocked(pcb_name);
+	ptr = Find_PCB(pcb_name);
 	if (ptr == NULL) return;
 	
 	if(ptr != NULL)
@@ -657,7 +670,7 @@ void unblock(char* pcb_name){
 		Remove_PCB(ptr);
 		ptr->state= 101;
 		Insert_PCB(ptr);
-		printf("PCB is now unblocked");
+		printf("PCB is now unblocked.\n\n\0");
 	}
 	return;
 }
@@ -938,12 +951,12 @@ int parseCommand(char *commandString) {
   
   if (strcmp(command, block_c) == 0) {
     if (arg1 == NULL) {
-      printf("block command requires name argument\n");
+      printf("block command requires name argument.\n\0");
       return 0;
     }
     else {
       //add function call when function is ready
-      printf("blocking %s\n\n",arg1);
+      printf("blocking %s\n\n\0",arg1);
       block(arg1);
       return 0;
     }
@@ -1235,10 +1248,10 @@ void testn_R3(){
 	test1con->IP = FP_OFF(&test1_R3);
 	test1con->FLAGS = 0x200;
 	
-	Insert_PCB(test1);
+	Insert_PCB(test1); 
 //show_ready();
 	//Test 2 function  
-	
+	/*
 	test2 = Setup_PCB("test2\0", 2, 1);
 	test2con = (context *) test2->stack_top;
 	
@@ -1248,7 +1261,7 @@ void testn_R3(){
 	test2con->IP = FP_OFF(&test2_R3);
 	test2con->FLAGS = 0x200;
 	
-	Insert_PCB(test1);
+	Insert_PCB(test2);
 	//show_ready();
 	/*
 	test3 = Setup_PCB("test3", 1, one);
