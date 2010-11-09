@@ -86,7 +86,7 @@ int main(void) {
 		    strcpy(commands[id_com], input);
         id_com++;
         loopbreaker++;   
-		    exitCode = parseCommand(strcat(input, "\0"));
+		    exitCode = parseCommand(input);
 		}
 		
 		if (exitCode == 1) {
@@ -200,11 +200,11 @@ pcb* temp;
 
 }
    
-pcb* Setup_PCB(char *name, int priorityc, int classc) {
+pcb* Setup_PCB(char name[], int priorityc, int classc) {
 	pcb* pcb1;
 	int class = classc;
 	
-	printf("SetupPCB: Name: %s, Prior: %d, Class: %d\n\n", name, priorityc, classc);
+	//printf("SetupPCB: Name: %s, Prior: %d, Class: %d\n\n", name, priorityc, classc);
 	
 	if (name == NULL) {
 		errorCodeTranslator(ERR_PCB_NONAME);
@@ -227,17 +227,16 @@ pcb* Setup_PCB(char *name, int priorityc, int classc) {
 		return;
 	}
 	pcb1 = allocatePcb();
-	//printf("PCB name: %s\n", name);
 	strcpy(pcb1->process_name, name);
+	//pcb1->process_name = strdup(name);
 	pcb1->priority = priorityc;
 	pcb1->process_class = classc;
 	pcb1->state = 101;
-	pcb1->exe_addr = NULL;
 	pcb1->next = NULL;
 	pcb1->prev = NULL;
-	printf("PCB succesfully created\n\n\n");
+	printf("PCB succesfully created.\n\n\n");
 	//Insert_PCB(pcb1);
-	Show_PCB(name);
+	//Show_PCB(name);
 	return pcb1;
 }
 
@@ -248,10 +247,10 @@ pcb* Find_PCB_Ready(char* name) {
     walk = readyQ->head;
       //while(walk != NULL) {
             check = check + 1;
-        	  printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+        	  //printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
             if (check > 50)
                 //break; 
-                printf("Print break");
+               // printf("Print break");
                       	  
         		if (strcmp(walk->process_name,name) == 0) {
               return walk;
@@ -268,7 +267,7 @@ pcb* Find_PCB_Blocked(char* name) {
     while(walk != NULL) {
       	  check = check + 1; 
       	  if (check == 25) {
-      	    printf("Infinite Looping Error. Aborted.\n");
+      	    //printf("Infinite Looping Error. Aborted.\n");
             break;
           }
       		if (strcmp(walk->process_name,name) == 0) {
@@ -288,9 +287,9 @@ pcb* Find_PCB_Suspended_Ready(char* name) {
       check = 0;
       while(walk != NULL) {
         	  check = check + 1;
-        	  printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+        	  //printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
         	  if (check == 25) {
-        	    printf("Infinite Looping Error. Aborted.\n");
+        	    //printf("Infinite Looping Error. Aborted.\n");
               break;
             }
         		if (strcmp(walk->process_name,name) == 0) {
@@ -308,9 +307,9 @@ pcb* Find_PCB_Suspended_Blocked(char* name) {
       check = 0;
       while(walk != NULL) {
         	  check = check + 1;
-        	  printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+        	  //printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
         	  if (check == 25) {
-        	    printf("Infinite Looping Error. Aborted.\n");
+        	    //printf("Infinite Looping Error. Aborted.\n");
               break;
             }
         		if (strcmp(walk->process_name,name) == 0) {
@@ -374,7 +373,7 @@ void priority_insert(queue* q, pcb *ptr){
   while (walk != NULL) {
    // printf("Priority: %i\tWalk: %i\n",priority, walk->priority);
     if (check == 25){
-      printf("Broke by check");
+      //printf("Broke by check");
       break;
     }
     
@@ -456,7 +455,7 @@ void Insert_PCB(pcb* pcb1){
   state = pcb1->state;
   //printf("Testing state before if statements in insert. state: %d\n\n", pcb1->state);
   
-  if (state == 100 || state == 101) {
+  if (state == READY) {
     priority_insert(readyQ, pcb1);
     //printf("ReadyQ name: %s Head: %s\n\n", readyQ->name, (readyQ->head)->process_name);
     return;
@@ -1184,7 +1183,6 @@ void changeDate(char *yearc, char *monthc, char *dayc) {
 	
  
 void interrupt sys_call() {
-    //param_p = ((MK_FP(_SS,_SP) + sizeof(context)));
     static int result;
     cop-> stack_top = (unsigned char *)MK_FP(_SS, _SP);
     
@@ -1198,11 +1196,10 @@ void interrupt sys_call() {
     param_p = (params*)(cop->stack_top + sizeof(context));
 
     if (param_p->op_code == IDLE) {
-        //printf("Call routine to set process into ready queue");
         cop->state = READY; //puts the process in the ready queue by changing its state
+        Insert_PCB(cop);
         result = 0;
     } else if (param_p->op_code == EXIT) {
-    		//printf("call routine to set process to exit");
     		Free_PCB(Remove_PCB(cop)); //not sure this is really the function to call but seems so
     		result = -1;
     } 
@@ -1228,7 +1225,8 @@ void testn_R3(){
 	context* test5con;
 	
 	//Test 1 function
-	test1 = Setup_PCB("test1", 1, 1);
+	test1 = Setup_PCB("test1\0", 1, 1);
+	//printf("\n\nTest1 name: %s, p: %d, c:d\n\n", test1->process_name,test1->priority,test1->process_class);
 	test1con = (context *) test1->stack_top;
 	
 	test1con->DS = _DS;
@@ -1238,9 +1236,10 @@ void testn_R3(){
 	test1con->FLAGS = 0x200;
 	
 	Insert_PCB(test1);
+//show_ready();
+	//Test 2 function  
 	
-	/*//Test 2 function
-	test2 = Setup_PCB("test1", 2, 1);
+	test2 = Setup_PCB("test2\0", 2, 1);
 	test2con = (context *) test2->stack_top;
 	
 	test2con->DS = _DS;
@@ -1250,6 +1249,7 @@ void testn_R3(){
 	test2con->FLAGS = 0x200;
 	
 	Insert_PCB(test1);
+	//show_ready();
 	/*
 	test3 = Setup_PCB("test3", 1, one);
 	test3->exe_addr = &test3_R3;
@@ -1261,6 +1261,7 @@ void testn_R3(){
 	test5->exe_addr = &test5_R3;
   */
   dispatcher();
+  
 }
 
 void save_context(int n){ //takes an integer for what test number it is
@@ -1291,19 +1292,18 @@ void interrupt dispatcher(){
 		head = readyQ->head;
 		cop = Remove_PCB(head);
 				if (cop != NULL) { //remove the element located at the head of the queue
-				cop->state = RUNNING;
-				_SS = FP_SEG(cop->stack_top);
-				_SP = FP_OFF(cop->stack_top);	
+				cop->state  = RUNNING;
+				_SS         = FP_SEG(cop->stack_top);
+				_SP         = FP_OFF(cop->stack_top);	
 				
-			} else {
-			
-				cop= NULL;
-				_SS=ss_save;
-				_SP=sp_save;
-				sp_save = NULL;
-				ss_save = NULL;
-			}
-	 }
+			  } 
+  } else {
+			cop= NULL;
+			_SS         = ss_save;
+			_SP         = sp_save;
+			sp_save     = NULL;
+			ss_save     = NULL;
+		} 
 }
 
 

@@ -44,14 +44,10 @@ typedef struct{
 }memory;
 
 typedef struct{
-    char process_name[40];
+    char process_name[30];
     int priority;
     int state;
-    
-    enum processclass {
-	one,
-	two
-    }process_class;
+    int process_class;
 
     int index;
 
@@ -61,8 +57,6 @@ typedef struct{
 
     struct pcb *next;
     struct pcb *prev;
-
-    unsigned int* exe_addr;
 
     unsigned char* stack_top;
     unsigned char* stack_base;
@@ -120,7 +114,7 @@ void interrupt dispatcher();
 pcb *allocatePcb();
 void blocked_add(pcb *node);
 void Free_PCB(pcb *ptr);
-pcb* Setup_PCB(char *name, int priorityc, int classc);
+pcb* Setup_PCB(char name[], int priorityc, int classc);
 pcb* Find_PCB(char *name);
 pcb* Find_PCB_Blocked(char* name);
 pcb* Find_PCB_Ready(char* name);
