@@ -44,7 +44,7 @@ typedef struct{
 }memory;
 
 typedef struct{
-    char process_name[30];
+    char process_name[50];
     int priority;
     int state;
     int process_class;
