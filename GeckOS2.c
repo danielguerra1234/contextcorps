@@ -214,11 +214,11 @@ pcb* Setup_PCB(char *name, int priorityc, int classc) {
 		errorCodeTranslator(ERR_PCB_NMETOLONG);
 		return;
 	}
-/*	if (Find_PCB(name) != NULL) {
+	/*if (Find_PCB(name) != NULL) {
 		errorCodeTranslator(ERR_PCB_NMEEXISTS);
 		return;
-	}  */
-	if(priorityc >127 || priorityc<-128) {
+	}*/  
+	if(priorityc > 127 || priorityc < (-128)) {
 		errorCodeTranslator(ERR_PCB_INVPRIORITY);
 		return;
 	}
@@ -236,7 +236,7 @@ pcb* Setup_PCB(char *name, int priorityc, int classc) {
 	pcb1->next = NULL;
 	pcb1->prev = NULL;
 	printf("PCB succesfully created\n\n\n");
-	Insert_PCB(pcb1);
+	//Insert_PCB(pcb1);
 	Show_PCB(name);
 	return pcb1;
 }
@@ -264,20 +264,21 @@ pcb* Find_PCB_Blocked(char* name) {
     pcb* walk;
     int check;
     walk = blockQ->head;
-      check = 0;
-      while(walk != NULL) {
-        	  check = check + 1;
-        	  printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
-        	  if (check == 25) {
-        	    printf("Infinite Looping Error. Aborted.\n");
-              break;
-            }
-        		if (strcmp(walk->process_name,name) == 0) {
-              return walk;
-            }
-              
-            walk = walk->next;
-      }
+    check = 0;
+    while(walk != NULL) {
+      	  check = check + 1; 
+      	  if (check == 25) {
+      	    printf("Infinite Looping Error. Aborted.\n");
+            break;
+          }
+      		if (strcmp(walk->process_name,name) == 0) {
+            return walk;
+          }
+            
+          walk = walk->next;
+    }
+    walk = NULL;  
+    return NULL;
 }
 
 pcb* Find_PCB_Suspended_Ready(char* name) {
@@ -362,7 +363,7 @@ void priority_insert(queue* q, pcb *ptr){
   }
     
   if (walk == NULL) {
-    printf("Walk is Null.\n");
+    //printf("Walk is Null.\n");
     ptr->next == NULL;
     ptr->prev == NULL;
     q->head = ptr;
@@ -427,22 +428,22 @@ void FIFO_insert(queue* q, pcb *ptr){
     printf("You cannot insert in this queue, it is already full\n");
   }
   else {
-      if (q->head == NULL) {
-          //printf("Queue head in Fifo check.\n\n");
+      if (q->head == NULL) {                              //No PCBs in queue
+          printf("Queue head in Fifo check.\n\n");
           ptr->next   = NULL;
           ptr->prev   = NULL;
           
           q->head     = ptr;
           q->tail     = ptr;
-      } else if ((q->head)->next == NULL) {
-          //printf("Queue head is 1 in Fifo check.\n\n");
-          ptr->next   = NULL;
-          ptr->prev   = q->head;
+      } else if ((q->head)->next == NULL) {               //first pcb in queue
+          printf("Queue head is 1 in Fifo check.\n\n");
+          ptr->next        = NULL;
+          ptr->prev        = q->head;
           
-          (q->head)->next = ptr;
-          q->tail         = ptr;
-      }else {
-          //printf("Queue head many in Fifo check.\n\n");
+          (q->head)->next  = ptr;
+          q->tail          = ptr;
+      }else {                                             //more than 1 pcb
+          printf("Queue head many in Fifo check.\n\n");
           (q->tail)->next = ptr;
           ptr->prev       = q->tail;
           q->tail         = ptr;
@@ -572,12 +573,14 @@ void Show_PCB(char* name) {
 void show_ready(){
 	 pcb* walk;
 	 int check;
+	 int i = 0;
    	 walk = readyQ->head; 
 	 
 	 if (walk == NULL) {
     		printf("Queue not available or is empty.\n");
     		return NULL;
-    } 
+    }
+   printf("Ready Queue:\n\n"); 
 	 while(walk != NULL) {
 	     check = check + 1;
 	  //printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
@@ -585,22 +588,25 @@ void show_ready(){
           break;
         }
     
-        printf("Pcb: %s\n",walk->process_name); 
+        printf("\t%d:\t%s\n",i++,walk->process_name); 
       
 	walk = walk->next;
 		 }
+	i = 0;
 	return NULL;
 }
 
 void show_blocked(){
 	 pcb* walk;
 	 int check;
+	 int i = 1;
    	 walk = blockQ->head; 
 	 
 	 if (walk == NULL) {
     printf("Queue not available or is empty.\n");
     return NULL;
     } 
+    printf("Blocked Queue:\n\n");
 	 while(walk != NULL) {
 	     check = check + 1;
 	  //printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
@@ -609,50 +615,22 @@ void show_blocked(){
           break;
         }
     
-        printf("Pcb: %s\n",walk->process_name); 
+        printf("\t%d:\t%s\n",i++,walk->process_name); 
       
 	walk = walk->next;
 		 }
+	i = 0;
 	return NULL;
 }
 
 void show_all(){
 	 pcb* walk;
 	 int check;
-   walk = readyQ->head; 
 	 
-	 if (walk == NULL) {
-    printf("Queue not available or is empty.\n");
-    return NULL;
-    } 
-    
-	 while(walk != NULL) {
-	     check = check + 1; 
-	     if (check == 30) {
-          break;
-        }
-    
-        printf("Pcb: %s\n",walk->process_name); 
-      
-	      walk = walk->next;
-		 }
-		 
-  
-   walk = blockQ->head; 
-	 if (walk == NULL) {
-    printf("Queue not available or is empty.\n");
-    return NULL;
-    } 
-	 while(walk != NULL) {
-	     check = check + 1;
-	  //printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
-	     if (check == 30) {
-          break;
-        }
-    
-        printf("Pcb: %s\n",walk->process_name);      
-	      walk = walk->next;
-		 }
+   printf("All PCB's:\n\n");
+   show_ready();
+   show_blocked();
+   
 	return NULL;
 }
 
@@ -966,7 +944,7 @@ int parseCommand(char *commandString) {
     }
     else {
       //add function call when function is ready
-      printf("blocking %s\n",arg1);
+      printf("blocking %s\n\n",arg1);
       block(arg1);
       return 0;
     }
@@ -1057,15 +1035,14 @@ int parseCommand(char *commandString) {
       }
     }
     if (strcmp(arg1, "-a") == 0) {
-      if (arg2 != NULL || arg3 != NULL || arg4 != NULL) {
-        printf("show command argument -a takes no arguments\n");
-        show_all();
+      if (arg3 != NULL || arg4 != NULL) {
+        printf("show argument -a requires no extra arguments ");
         return 0;
       }
       else {
         //add function call
         printf("calling show with -a argument\n");
-        //show_all();
+        show_all();
         return 0;
       } 
     }
@@ -1236,16 +1213,22 @@ void interrupt sys_call() {
 }       
 
 void testn_R3(){
-
+  
 	pcb* test1;
 	pcb* test2;
 	pcb* test3;
 	pcb* test4;
 	pcb* test5;
+	
+	//Context for each function
 	context* test1con;
+	context* test2con;
+	context* test3con;
+	context* test4con;
+	context* test5con;
 	
 	//Test 1 function
-	test1 = Setup_PCB("test1", 1, one);
+	test1 = Setup_PCB("test1", 1, 1);
 	test1con = (context *) test1->stack_top;
 	
 	test1con->DS = _DS;
@@ -1255,10 +1238,19 @@ void testn_R3(){
 	test1con->FLAGS = 0x200;
 	
 	Insert_PCB(test1);
-	/*
-	test2 = Setup_PCB("test2", 1, one);
-	test2->exe_addr = &test2_R3;
 	
+	/*//Test 2 function
+	test2 = Setup_PCB("test1", 2, 1);
+	test2con = (context *) test2->stack_top;
+	
+	test2con->DS = _DS;
+	test2con->ES = _ES;
+	test2con->CS = FP_SEG(&test2_R3);
+	test2con->IP = FP_OFF(&test2_R3);
+	test2con->FLAGS = 0x200;
+	
+	Insert_PCB(test1);
+	/*
 	test3 = Setup_PCB("test3", 1, one);
 	test3->exe_addr = &test3_R3;
 	
