@@ -50,7 +50,6 @@ typedef struct{
     int process_class;
 
     int index;
-
     stack_area process_stack_info;
 
     unsigned char* next_one;
