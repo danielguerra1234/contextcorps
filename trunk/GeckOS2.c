@@ -232,11 +232,11 @@ pcb* Setup_PCB(char name[], int priorityc, int classc) {
 	//pcb1->process_name = strdup(name);
 	pcb1->priority = priorityc;
 	pcb1->process_class = classc;
-	pcb1->state = 101;
+	pcb1->state = READY;
 	pcb1->next = NULL;
 	pcb1->prev = NULL;
 	printf("PCB succesfully created.\n\n\n");
-	Insert_PCB(pcb1);
+	//Insert_PCB(pcb1);
 	//Show_PCB(name);
 	return pcb1;
 }
@@ -337,11 +337,11 @@ pcb* Find_PCB(char *name){
 	if (ptr == NULL) {
       ptr = Find_PCB_Blocked(name);   
   }
-  /*
+  
   if (ptr == NULL) {
       ptr = Find_PCB_Suspended_Ready(name);
   }
-  
+  /*
   if (ptr == NULL) {
       ptr = Find_PCB_Suspended_Blocked(name);
   }
@@ -357,29 +357,29 @@ pcb* Find_PCB(char *name){
 void priority_insert(queue* q, pcb *ptr){
   pcb* walk; 
   pcb* prev;
-  pcb* temp;
+  pcb* next;
+  
   int c = 0;
   int priority;
   int check= 0;
   
   priority = ptr->priority;
   walk = q->head;
-  
-  if (sizeof(q)>=buffer) {
-    printf("You cannot insert in this queue, it is already full\n\n");
-    return;
-  }
     
-  if (walk == NULL) {
+  if (walk == NULL) {           //Queue is empty, insert at head
     //printf("Walk is Null.\n");
     ptr->next == NULL;
     ptr->prev == NULL;
     q->head = ptr;
-    q->index++;
+    //(q->index)++;
     return;
   }
   
-  while (walk != NULL) {
+  
+  while (walk != NULL) {   //not empty, start searching
+    next = walk->next;
+    prev = walk->prev;
+    
    // printf("Priority: %i\tWalk: %i\n",priority, walk->priority);
     if (check == 25){
       //printf("Broke by check");
@@ -389,51 +389,36 @@ void priority_insert(queue* q, pcb *ptr){
     if (priority <= walk->priority) {
      // printf("p < w\n");
       
-        if (walk->prev == NULL && c == 0){
+        if (walk->prev == NULL && c == 0){  ////insert at head, move head to next
               //printf("Walk == NULL test.\n");
-	            walk->prev       = ptr;
-             walk->next       = NULL;
-             
+	           prev       = ptr;
 	           ptr->next        = walk;
              ptr->prev        = NULL;
              q->head          = ptr;
-            // printf("walk name: %s\n\n", walk->process_name);
-             q->index++;
-             //c++;
-             break;
-        } else {
-	    temp = walk->prev;
-	    ptr->next = walk;
-            ptr->prev = walk->prev;
-	    temp->next = ptr;
-	    walk->prev = ptr;
-             q->index++;
-            return;
+             return; 
+        } else {      
+      	    ptr->next = walk;
+            ptr->prev = prev;
             
+      	    prev->next = ptr;
+      	    walk->prev = ptr;
+            return;
         }  
-    q->index++;
-    return;
-      
-    } else if (priority > walk->priority) {
-           if (walk->next == NULL) {
-	      walk->next = ptr;
-	      ptr->prev = walk;
-              ptr->next = NULL;
-              q->index++;
+    } else if (priority > walk->priority) {    //check priority is greater than walk
+           if (next == NULL) {           //insert at tail
+      	      walk->next    = ptr;
+      	      ptr->prev     = walk;
+              ptr->next     = NULL;  
               return;
            }
            if (walk->next != NULL) {
-	      walk = walk->next;
+	             walk = walk->next;
            }
     }    
   }
 }
 
 void FIFO_insert(queue* q, pcb *ptr){
-  if (sizeof(q)>=buffer) {
-    printf("You cannot insert in this queue, it is already full\n");
-  }
-  else {
       if (q->head == NULL) {                              //No PCBs in queue
           printf("Queue head in Fifo check.\n\n");
           ptr->next   = NULL;
@@ -454,7 +439,6 @@ void FIFO_insert(queue* q, pcb *ptr){
           ptr->prev       = q->tail;
           q->tail         = ptr;
     }
-  }
 }
 
 void Insert_PCB(pcb* pcb1){
@@ -493,42 +477,51 @@ pcb* Remove_PCB(pcb *pcb1){
   
   state = pcb1->state;
   
-  next=	pcb1->next;
-  prev= pcb1->prev;
+  
   
  // printf("Pcb name: %s\n\n\0",pcb1->process_name);
-  if (state == READY) {
+  if (state == READY) {                    //choose q to remove from 
       q = readyQ;  
   } else if (state == BLOCKED) {
       q = blockQ;
   }
   
+  next=	pcb1->next;   //pcb next
+  prev= pcb1->prev;   //pcb prev both temp variables
+  
   if (strcmp(q->head->process_name,pcb1->process_name) == 0) {//pcb1 is head of queue
-      //next = pcb1->next;
-      //printf("Pcb name 1: %s\n\n\0",pcb1->process_name);
-      if (next == NULL){ //only one queue
-          //printf("Pcb name 2: %s\n\n\0",pcb1->process_name);
-          q->head = NULL;
-          next = NULL;
-          pcb1= NULL;
-         // pcb1->prev = NULL;
+      if (next == NULL){ //only one pcb is queue and it is the head
+          q->head     = NULL;
+          next        = NULL;
+          
+          pcb1->next  = NULL;
+          pcb1->prev  = NULL;
+          
           return pcb1;
-      }
-      else{
-      	q->head= next;
-  		next->prev= NULL;
-	}
-      
+      } else if (next != NULL) {    //at least two pcbs- set head = head's next
+      	   q->head      = next;
+  		     next->prev   = NULL;
+  		     //next->next   = NULL;
+  		     
+  		     pcb1->next   = NULL;
+  		     pcb1->prev   = NULL;
+  		     return pcb1;
+	      }
+  //now, if the pcb is not the head    
   } else if (pcb1->next = NULL && pcb1->prev != NULL){ //pcb1 is the last element in the queue
-          //printf("Pcb name 4: %s\n\n\0",pcb1->process_name);
-          pcb1= NULL;
-          prev->next = NULL;
+          prev->next    = NULL;
+          
+          pcb1->next    = NULL;
+          pcb1->prev    = NULL;
+          
           return pcb1;  
           
   } else if (pcb1->next != NULL && pcb1->prev != NULL) { //pcb is in the middle of the queue
-          //printf("Pcb name 5: %s\n\n\0",pcb1->process_name);
-          prev->next = next;
-          next->prev = prev;
+          prev->next  = next;
+          next->prev  = prev;
+          
+          pcb1->next  = NULL;
+          pcb1->prev  = NULL;  
           return pcb1;
       }    
   //return 0; 
@@ -1259,18 +1252,44 @@ void testn_R3(){
 	test2con->IP = FP_OFF(&test2_R3);
 	test2con->FLAGS = 0x200;
 	
-	Insert_PCB(test2);
-	//show_ready();
-	/*
-	test3 = Setup_PCB("test3", 1, one);
-	test3->exe_addr = &test3_R3;
+	Insert_PCB(test2);   
 	
-	test4 = Setup_PCB("test4", 1, one);
-	test4->exe_addr = &test4_R3;
+	//Test 3 function  
+	test3 = Setup_PCB("test3\0", 3, 1);
+	test3con = (context *) test3->stack_top;
 	
-	test5 = Setup_PCB("test5", 1, one);
-	test5->exe_addr = &test5_R3;
-  */
+	test3con->DS = _DS;
+	test3con->ES = _ES;
+	test3con->CS = FP_SEG(&test3_R3);
+	test3con->IP = FP_OFF(&test3_R3);
+	test3con->FLAGS = 0x200;
+	
+	Insert_PCB(test3); 
+  
+  //Test 4 function  
+	test4 = Setup_PCB("test4\0", 4, 1);
+	test4con = (context *) test4->stack_top;
+	
+	test4con->DS = _DS;
+	test4con->ES = _ES;
+	test4con->CS = FP_SEG(&test4_R3);
+	test4con->IP = FP_OFF(&test4_R3);
+	test4con->FLAGS = 0x200;
+	
+	Insert_PCB(test4);     
+
+  //Test 5 function  
+	test5 = Setup_PCB("test5\0", 5, 1);
+	test5con = (context *) test5->stack_top;
+	
+	test5con->DS = _DS;
+	test5con->ES = _ES;
+	test5con->CS = FP_SEG(&test5_R3);
+	test5con->IP = FP_OFF(&test5_R3);
+	test5con->FLAGS = 0x200;
+	
+	Insert_PCB(test5);   
+	
   dispatcher();
   
 }
@@ -1279,27 +1298,30 @@ void testn_R3(){
 void interrupt dispatcher(){
  	
  	static pcb* head; //HEAD of the ready queue
- 	
- 	
+ 	static int temp_ss;
+ 	static int temp_sp;
  	if (sp_save == NULL)
  	{
  	  ss_save = _SS;
 		sp_save = _SP;
-		head = readyQ->head;
-		cop = Remove_PCB(head);
-				if (cop != NULL) { //remove the element located at the head of the queue
-				cop->state  = RUNNING;
-				_SS         = FP_SEG(cop->stack_top);
-				_SP         = FP_OFF(cop->stack_top);	
-				
-			  } 
-  } else {
-			cop= NULL;
-			_SS         = ss_save;
-			_SP         = sp_save;
-			sp_save     = NULL;
-			ss_save     = NULL;
-		} 
+	}
+	
+	head = readyQ->head;
+	cop = Remove_PCB(head);
+	
+			if (cop != NULL) { //remove the element located at the head of the queue
+    			cop->state  = RUNNING;
+    			temp_ss = FP_SEG(cop->stack_top);
+          temp_sp = FP_OFF(cop->stack_top);	 
+    			_SS         = temp_ss;
+    			_SP         = temp_sp;	
+		  } else {
+    			cop= NULL;
+    			_SS         = ss_save;
+    			_SP         = sp_save;
+    			sp_save     = NULL;
+    			ss_save     = NULL;
+		  } 
 }
 
 
