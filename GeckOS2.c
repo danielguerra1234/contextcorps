@@ -485,7 +485,6 @@ void Insert_PCB(pcb* pcb1){
   }
 }
 
-
 pcb* Remove_PCB(pcb *pcb1){
   queue* q;
   pcb* prev;
@@ -493,6 +492,10 @@ pcb* Remove_PCB(pcb *pcb1){
   int state;
   
   state = pcb1->state;
+  
+  next=	pcb1->next;
+  prev= pcb1->prev;
+  
  // printf("Pcb name: %s\n\n\0",pcb1->process_name);
   if (state == READY) {
       q = readyQ;  
@@ -501,41 +504,36 @@ pcb* Remove_PCB(pcb *pcb1){
   }
   
   if (strcmp(q->head->process_name,pcb1->process_name) == 0) {//pcb1 is head of queue
-      next = pcb1->next;
+      //next = pcb1->next;
       //printf("Pcb name 1: %s\n\n\0",pcb1->process_name);
       if (next == NULL){ //only one queue
           //printf("Pcb name 2: %s\n\n\0",pcb1->process_name);
           q->head = NULL;
-          pcb1->next = NULL;
-          pcb1->prev = NULL;
+          next = NULL;
+          pcb1= NULL;
+         // pcb1->prev = NULL;
           return pcb1;
       }
-  } else {
-      //printf("Pcb name 3: %s\n\n\0",pcb1->process_name);
-      if (pcb1->next = NULL && pcb1->prev != NULL){
+      else{
+      	q->head= next;
+  		next->prev= NULL;
+	}
+      
+  } else if (pcb1->next = NULL && pcb1->prev != NULL){ //pcb1 is the last element in the queue
           //printf("Pcb name 4: %s\n\n\0",pcb1->process_name);
-          prev = pcb1->prev;
-                
+          pcb1= NULL;
           prev->next = NULL;
-          pcb1->next = NULL;
-          pcb1->prev = NULL;
           return pcb1;  
-      } else if (pcb1->next != NULL && pcb1->prev != NULL) {
-          //printf("Pcb name 5: %s\n\n\0",pcb1->process_name);
-          next = pcb1->next;
-          prev = pcb1->prev;
           
+  } else if (pcb1->next != NULL && pcb1->prev != NULL) { //pcb is in the middle of the queue
+          //printf("Pcb name 5: %s\n\n\0",pcb1->process_name);
           prev->next = next;
           next->prev = prev;
-          
-          pcb1->next = NULL;
-          pcb1->prev = NULL;
-          
           return pcb1;
       }    
-  }
-  return 0; 
+  //return 0; 
 }
+
 
 
 void Set_Priority(char* name, int p) {
@@ -582,7 +580,7 @@ void Show_PCB(char* name) {
 void show_ready(){
 	 pcb* walk;
 	 int check;
-	 int i = 0;
+	 int i = 1;
    	 walk = readyQ->head; 
 	 
 	 if (walk == NULL) {
@@ -601,7 +599,7 @@ void show_ready(){
       
 	walk = walk->next;
 		 }
-	i = 0;
+	i = 1;
 	return NULL;
 }
 
