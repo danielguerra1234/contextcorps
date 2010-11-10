@@ -1249,7 +1249,7 @@ void testn_R3(){
 	Insert_PCB(test1); 
 //show_ready();
 	//Test 2 function  
-	/*
+	
 	test2 = Setup_PCB("test2\0", 2, 1);
 	test2con = (context *) test2->stack_top;
 	
@@ -1275,20 +1275,6 @@ void testn_R3(){
   
 }
 
-void save_context(int n){ //takes an integer for what test number it is
-
-	pcb pcb_a[5]; //array of pcbs
-	context *context_p;
-	pcb_a[n].stack_p = (int)pcb_a[n].stack_base + (int)pcb_a[n].stack_size - (int)sizeof(context);
-	context_p =(context*) pcb_a[n].stack_p;
-	context_p->DS = _DS;
-	context_p->ES = _ES;
-	context_p->CS = FP_SEG(&testn_R3);
-	context_p->IP = FP_OFF(&testn_R3);
-	context_p->FLAGS = 0x200;
-}
-
-
 
 void interrupt dispatcher(){
  	
@@ -1299,7 +1285,6 @@ void interrupt dispatcher(){
  	{
  	  ss_save = _SS;
 		sp_save = _SP;
-		//ask for the first element in ready queue
 		head = readyQ->head;
 		cop = Remove_PCB(head);
 				if (cop != NULL) { //remove the element located at the head of the queue
