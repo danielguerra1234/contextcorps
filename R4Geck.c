@@ -47,6 +47,7 @@ char* resume_c        = "resume";
 char* priority_c      = "priority";
 char* alias_c         = "alias";
 char* dispatch_c      = "dispatch";
+char* load_c          = "load";
 
 unsigned int sp_save=NULL, ss_save=NULL;
 unsigned int ssnew=NULL, spnew=NULL;
@@ -108,7 +109,7 @@ void init() {
 	clearScreen();
 	puts(greeting);
 	dp = opendir ("./");
-	sys_init(MODULE_R3);
+	sys_init(MODULE_R4);
 	readyQ = initQueue(readyQ, "Ready\0");
 	blockQ = initQueue(blockQ, "Blocked\0");
 	suspendreadyQ = initQueue(suspendreadyQ, "Suspended Ready\0");
@@ -134,45 +135,6 @@ queue* initQueue(queue* newQ, char* name) {
 
 long buffer_length = 100;
 unsigned char buffer[SIZE];
-//#############Queue Functions#################
-//Queue function error codes start in the 300
-
-void blocked_add(pcb *node) {
-    if (blockQ->nodes == 0) {
-		blockQ->head = node;
-		blockQ->tail = node;
-		node->next = NULL;
-        node->prev = NULL;
-        blockQ->nodes = 1;
-    }
-    if (readyQ->nodes != 0) {
-        pcb *current;
-		current = blockQ->head;
-          
-        if (current->priority > node->priority) {
-			current = current->next;
-		}
-		else if (current->priority < node->priority) {
-			puts("start here");
-	}
-    }
-}
-/*
-pcb* getNext(queue *q) {
-	if (q->head == NULL) return NULL; //if no head, then no pcb in queue
-	if (q->index == NULL) q->index = q->head; //set initial position
-	else if (q->index->next == NULL) q->index = q->head; //if at end of queue, start at beginning
-	else q->index = q->index->next; //change to next element
-	return q->index;
-}
-
-pcb* getPrevious(queue *q) {
-	if (q->head == NULL) return NULL; //if no head, then no pcb in queue
-	if (q->index == NULL) q->index = q->head; //set initial position
-	else if (q->index->prev == NULL) q->index = q->tail; //if at beginning of queue, start at end
-	else q->index = q->index->prev; //change to previous element
-	return q->index;
-} */
 
 //############PCB Functions####################
 //PCB error codes start in the 400
@@ -198,12 +160,16 @@ pcb* temp;
        sys_free_mem(ptr->stack_base);
        sys_free_mem(ptr);
   }
-
 }
    
-pcb* Setup_PCB(char name[], int priorityc, int classc) {
+pcb* Load_Program(char name[], char prog_name[], int priorityc, char dir_name[]) {
 	pcb* pcb1;
-	int class = classc;
+	
+	int* prog_len_p;
+	int size;
+	unsigned char* load_addr;
+	unsigned char* exec_addr;
+	int* start_offset_p;
 	
 	//printf("SetupPCB: Name: %s, Prior: %d, Class: %d\n\n", name, priorityc, classc);
 	
@@ -223,32 +189,51 @@ pcb* Setup_PCB(char name[], int priorityc, int classc) {
 		errorCodeTranslator(ERR_PCB_INVPRIORITY);
 		return;
 	}
-	if (class!= 1 && class!= 2) {
-		errorCodeTranslator(ERR_PCB_INVCLASS);
-		return;
-	}
 	pcb1 = allocatePcb();
 	strcpy(pcb1->process_name, name);
-	//pcb1->process_name = strdup(name);
+
 	pcb1->priority = priorityc;
-	pcb1->process_class = classc;
-	pcb1->state = READY;
-	pcb1->next = NULL;
-	pcb1->prev = NULL;
-	printf("PCB succesfully created.\n\n\n");
-	//Insert_PCB(pcb1);
-	//Show_PCB(name);
+	pcb1->process_class = APPLICATION;
+	pcb1->state = SUSPENDED_READY;
+
+  //returns size of memory needed to hold program
+	size = sys_check_program(NULL, prog_name, prog_len_p, start_offset_p);
+
+  //sys_alloc_mem inits the memory for the program
+	load_addr = sys_alloc_mem(size);
+	
+	//sets the pcbs exec_addr by calculing stack offset
+	pcb1->exec_addr = *load_addr + *start_offset_p;
+	
+	//call load program passing in calculated values from earlier
+	sys_load_program (load_addr, 4096, NULL, prog_name);
+	
+	pcb1 = save_context(pcb1); //this is supposed to setup the pcb context
+	Insert_PCB(pcb1); // should go to the suspended ready queue
 	return pcb1;
 }
 
+pcb* save_context(pcb* pcb1) {
+    context* con;
+
+    con = (context*)pcb1->stack_top;
+  	
+  	con->DS = _DS;
+  	con->ES = _ES;
+  	con->CS = FP_SEG(pcb1->exec_addr);
+  	con->IP = FP_OFF(pcb1->load_addr);
+  	//con->FLAGS = 0x200;
+  	return pcb1;
+}
+
 pcb* Find_PCB_Ready(char* name) {
-    	 pcb* walk;
+   pcb* walk;
 	 int check;
 	 int i = 0;
    walk = readyQ->head; 
 	 
 	 if (walk == NULL) {
-    		printf("Queue not available or is empty.\n");
+    		//printf("Queue not available or is empty.\n");
     		return NULL;
     }
      
@@ -335,22 +320,26 @@ pcb* Find_PCB(char *name){
 	ptr = Find_PCB_Ready(name);
 	
 	if (ptr == NULL) {
-      ptr = Find_PCB_Blocked(name);   
+      ptr = Find_PCB_Blocked(name);
+         
   }
   
   if (ptr == NULL) {
       ptr = Find_PCB_Suspended_Ready(name);
+      
   }
-  /*
+  
   if (ptr == NULL) {
       ptr = Find_PCB_Suspended_Blocked(name);
+      
   }
   
   if (ptr == NULL) {
       printf("PCB %s not available", name);
       return NULL;
-  }  */
-  return ptr;
+  } else {
+      return ptr;
+  }  
 	
 }
 
@@ -374,8 +363,7 @@ void priority_insert(queue* q, pcb *ptr){
     //(q->index)++;
     return;
   }
-  
-  
+   
   while (walk != NULL) {   //not empty, start searching
     next = walk->next;
     prev = walk->prev;
@@ -420,21 +408,21 @@ void priority_insert(queue* q, pcb *ptr){
 
 void FIFO_insert(queue* q, pcb *ptr){
       if (q->head == NULL) {                              //No PCBs in queue
-          printf("Queue head in Fifo check.\n\n");
+          //printf("Queue head in Fifo check.\n\n");
           ptr->next   = NULL;
           ptr->prev   = NULL;
           
           q->head     = ptr;
           q->tail     = ptr;
       } else if ((q->head)->next == NULL) {               //first pcb in queue
-          printf("Queue head is 1 in Fifo check.\n\n");
+          //printf("Queue head is 1 in Fifo check.\n\n");
           ptr->next        = NULL;
           ptr->prev        = q->head;
           
           (q->head)->next  = ptr;
           q->tail          = ptr;
       }else {                                             //more than 1 pcb
-          printf("Queue head many in Fifo check.\n\n");
+          //printf("Queue head many in Fifo check.\n\n");
           (q->tail)->next = ptr;
           ptr->prev       = q->tail;
           q->tail         = ptr;
@@ -484,6 +472,12 @@ pcb* Remove_PCB(pcb *pcb1){
       q = readyQ;  
   } else if (state == BLOCKED) {
       q = blockQ;
+  } else if (state == SUSPENDED_READY) {
+      q = suspendreadyQ;
+  } else if (state == SUSPENDED_BLOCKED) {
+      q = suspendblockQ;
+  } else {
+      printf("Queue %s is not valid.\n",q->name);
   }
   
   next=	pcb1->next;   //pcb next
@@ -575,6 +569,32 @@ void show_ready(){
 	 int check;
 	 int i = 1;
    	 walk = readyQ->head; 
+	 
+	 if (walk == NULL) {
+    		printf("Queue not available or is empty.\n");
+    		return NULL;
+    }
+   printf("Ready Queue:\n\n"); 
+	 while(walk != NULL) {
+	     check = check + 1;
+	  //printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+	     if (check == 30) {
+          break;
+        }
+    
+        printf("\t%d:\t%s\n",i++,walk->process_name); 
+      
+	walk = walk->next;
+		 }
+	i = 1;
+	return NULL;
+}
+
+void show_suspended_ready(){
+	 pcb* walk;
+	 int check;
+	 int i = 1;
+   	 walk = suspendreadyQ->head; 
 	 
 	 if (walk == NULL) {
     		printf("Queue not available or is empty.\n");
@@ -691,17 +711,19 @@ void resume(char* pcb_name){
 	pcb* ptr;
 	ptr= Find_PCB(pcb_name);
 	if(ptr != NULL) {
-		if (ptr->state= 103) {
-			ptr->state= 101;
+		if (ptr->state= SUSPENDED_READY) {
 			Remove_PCB(ptr);
+			ptr->state= READY;
 			Insert_PCB(ptr);
-			printf("PCB has now resumed");
+			//printf("PCB has now resumed.\n");
+			return;
 		}
-		if(ptr->state=104) {
-			ptr->state= 102;
+		if(ptr->state=SUSPENDED_BLOCKED) {
 			Remove_PCB(ptr);
+			ptr->state= BLOCKED;
 			Insert_PCB(ptr);
-			printf("PCB has now resumed");
+			//printf("PCB has now resumed.\n");
+			return;
 		}
 	}
 	return;
@@ -741,9 +763,17 @@ int parseCommand(char *commandString) {
 		return 0;
 	}
 	if (strcmp(command,dispatch_c) == 0) {
-		testn_R3();
+		dispatcher();
 		return 0;
-	}
+	} 
+	if (strcmp(command,load_c) == 0) {
+	   if (arg1 == NULL || arg2 == NULL || arg3 == NULL) {
+        printf("Load function requires 3 arguments.\n");
+     } else {
+        Load_Program(arg1, arg2, atoi(arg3), NULL);
+        return 0;
+     }
+  }
 	
 	if (strcmp(command,alias_c) == 0) {
 	   if (arg1 == NULL || arg2 == NULL) {                   //Check args
@@ -910,8 +940,9 @@ int parseCommand(char *commandString) {
 			} else {
 				//add function call once functions are ready
 				//printf("Creating a pcb\nName: %s\nClass: %s\nPriority: %d\n",arg2,atoi(arg3),arg4);
-				Setup_PCB(arg2,atoi(arg3),atoi(arg4));
+				//Setup_PCB(arg2,atoi(arg3),atoi(arg4));
 				//printf("parse command check: %s\n",readyQ->head->process_name);
+				printf("PCB create is disabled in R4, use load.\n");
 				return 0;
 			}
 		}
@@ -1071,6 +1102,17 @@ int parseCommand(char *commandString) {
         return 0;
       }
     }
+    if (strcmp(arg1, "-sr") == 0) {
+      if (arg2 != NULL || arg3 != NULL || arg4 != NULL) {
+        printf("show command argument -sr takes no arguments\n");
+        return 0;
+      }
+      else {
+        printf("calling show command with -sr argument\n");
+        show_suspended_ready();
+        return 0;
+      }
+    }
     else{
       printf("Argument '%s' is an invalid argument\n",arg1);
       return 0;
@@ -1183,8 +1225,7 @@ void changeDate(char *yearc, char *monthc, char *dayc) {
 		  displayDate();
 	}
 }
-
-	
+    	
  
 void interrupt sys_call() {
     static int result;
@@ -1212,7 +1253,7 @@ void interrupt sys_call() {
     context_p->AX= result; //resetting the AX to the value returned, used later by sys_req no idea what for=    
     dispatcher();
 }       
-
+/*
 void testn_R3(){
   
 	pcb* test1;
@@ -1293,7 +1334,7 @@ void testn_R3(){
   dispatcher();
   
 }
-
+*/
 
 void interrupt dispatcher(){
  	
@@ -1324,6 +1365,16 @@ void interrupt dispatcher(){
 		  } 
 }
 
+void terminate_process(char* pcb_name){
+  	pcb* pcb1;
+  	pcb* pcb2;
+  	pcb1= Find_PCB(pcb_name);
+  	
+  	if(pcb1== NULL)
+  		  printf("Process does not exist");
+  	pcb2= Remove_PCB(pcb1);
+  	Free_PCB(pcb2);
+}
 
 int command_check(char* name) {
      int check = 1;
