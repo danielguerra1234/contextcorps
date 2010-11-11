@@ -29,6 +29,12 @@
 #define SUSPENDED_READY 103
 #define SUSPENDED_BLOCKED 104
 
+typedef struct{ 
+    unsigned int BP, DI, SI, DS, ES; 
+    unsigned int DX, CX, BX, AX; 
+    unsigned int IP, CS, FLAGS; 
+    } context;
+
 typedef struct{
     char process_name[50];
     int priority;
@@ -66,15 +72,11 @@ typedef struct {
     int* count_addr;
     } params;
 
-typedef struct{ 
-    unsigned int BP, DI, SI, DS, ES; 
-    unsigned int DX, CX, BX, AX; 
-    unsigned int IP, CS, FLAGS; 
-    } context; 
+ 
 
 
 void interrupt sys_call(void);
-void save_context();
+pcb* save_context(pcb*);
 void interrupt dispatcher();
 
 //PCB PROTOTYPES
@@ -82,6 +84,8 @@ pcb *allocatePcb();
 void blocked_add(pcb *node);
 void Free_PCB(pcb *ptr);
 pcb* Setup_PCB(char name[], int priorityc, int classc);
+pcb* Load_Program(char*, char*, int, char*);
+
 pcb* Find_PCB(char *name);
 pcb* Find_PCB_Blocked(char* name);
 pcb* Find_PCB_Ready(char* name);
