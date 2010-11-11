@@ -137,43 +137,6 @@ unsigned char buffer[SIZE];
 //#############Queue Functions#################
 //Queue function error codes start in the 300
 
-void blocked_add(pcb *node) {
-    if (blockQ->nodes == 0) {
-		blockQ->head = node;
-		blockQ->tail = node;
-		node->next = NULL;
-        node->prev = NULL;
-        blockQ->nodes = 1;
-    }
-    if (readyQ->nodes != 0) {
-        pcb *current;
-		current = blockQ->head;
-          
-        if (current->priority > node->priority) {
-			current = current->next;
-		}
-		else if (current->priority < node->priority) {
-			puts("start here");
-	}
-    }
-}
-/*
-pcb* getNext(queue *q) {
-	if (q->head == NULL) return NULL; //if no head, then no pcb in queue
-	if (q->index == NULL) q->index = q->head; //set initial position
-	else if (q->index->next == NULL) q->index = q->head; //if at end of queue, start at beginning
-	else q->index = q->index->next; //change to next element
-	return q->index;
-}
-
-pcb* getPrevious(queue *q) {
-	if (q->head == NULL) return NULL; //if no head, then no pcb in queue
-	if (q->index == NULL) q->index = q->head; //set initial position
-	else if (q->index->prev == NULL) q->index = q->tail; //if at beginning of queue, start at end
-	else q->index = q->index->prev; //change to previous element
-	return q->index;
-} */
-
 //############PCB Functions####################
 //PCB error codes start in the 400
 pcb *allocatePcb(){
