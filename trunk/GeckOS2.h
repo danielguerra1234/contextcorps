@@ -1,4 +1,3 @@
-
 #ifndef GeckOS2
 #define GeckOS2
 
@@ -37,7 +36,6 @@ typedef struct{
     int process_class;
 
     int index;
-    int memory
 
     struct pcb *next;
     struct pcb *prev;
@@ -52,23 +50,6 @@ typedef struct{
     unsigned char* exec_addr;
 
 }pcb;
-
-typedef struct {
-    int id;
-    char *command;
-    struct history *next;
-} history;
-
-typedef struct {
-    history* head;
-    int index;
-} hist_stack;
-
-typedef struct{
-    unsigned char* queue_element;
-    unsigned char* next_queue_descriptor;
-    unsigned char* previous_queue_descriptor;
-}queue_descriptor;
 
 typedef struct{
     char* name;
