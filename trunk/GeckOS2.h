@@ -31,28 +31,13 @@
 #define SUSPENDED_BLOCKED 104
 
 typedef struct{
-    char stack[1024];
-	unsigned char *stack_top;
-	unsigned char *stack_base;
-}stack_area;
-
-
-typedef struct{
-    int mem_size;
-    unsigned char* load_address;
-    unsigned char* exec_address;
-}memory;
-
-typedef struct{
     char process_name[50];
     int priority;
     int state;
     int process_class;
 
     int index;
-    stack_area process_stack_info;
-
-    unsigned char* next_one;
+    int memory
 
     struct pcb *next;
     struct pcb *prev;
@@ -62,7 +47,9 @@ typedef struct{
 	  unsigned char* stack_size;
 	  unsigned int* stack_p;
 
-    memory process_memory_info;
+    int memory;
+    unsigned char* load_addr;
+    unsigned char* exec_addr;
 
 }pcb;
 
