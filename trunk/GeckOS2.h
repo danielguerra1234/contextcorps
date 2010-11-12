@@ -52,8 +52,8 @@ typedef struct{
 	  unsigned int* stack_p;
 
     int memory;
-    unsigned char* load_addr;
-    unsigned char* exec_addr;
+    unsigned char* load;
+    unsigned char* execution;
 
 }pcb;
 
