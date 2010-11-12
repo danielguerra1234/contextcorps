@@ -105,6 +105,7 @@ int main(void) {
 }
 
 void init() {
+  int error;
   char greeting[20] = "Welcome to GeckOS!\0";
 	clearScreen();
 	puts(greeting);
@@ -114,7 +115,12 @@ void init() {
 	blockQ = initQueue(blockQ, "Blocked\0");
 	suspendreadyQ = initQueue(suspendreadyQ, "Suspended Ready\0");
 	suspendblockQ = initQueue(suspendblockQ, "Suspended Blocked\0");
-	sys_set_vec(sys_call);  
+	error = sys_set_vec(sys_call); 
+  
+  if (error != 0) {
+	   errorCodeTranslator(error);
+	   return;
+	} 
 }
 
 //Structure functions for PCB and QUEUE
@@ -151,44 +157,54 @@ pcb *allocatePcb(){
 }
 
 void Free_PCB(pcb *ptr) { //pcb pointer
-pcb* temp;
-  temp = Find_PCB(ptr->process_name);
-  if (temp == NULL){
-      //printf("PCB not found.\n");
+  if (ptr == NULL){
+      printf("PCB not found, can not be releaseed.\n");
       return 0;
   } else {
+        if (ptr->load != NULL) {
+          sys_free_mem(ptr->load);
+          }
        sys_free_mem(ptr->stack_base);
+       
        sys_free_mem(ptr);
   }
 }
    
 pcb* Load_Program(char name[], char prog_name[], int priorityc, char dir_name[]) {
 	pcb* pcb1;
-	
-	int* prog_len_p;
+	int error;
+	                          
+	int prog_len_p;
 	int size;
-	unsigned char* load_addr;
-	unsigned char* exec_addr;
-	int* start_offset_p;
-	
-	//printf("SetupPCB: Name: %s, Prior: %d, Class: %d\n\n", name, priorityc, classc);
+	unsigned char* load_address;
+	unsigned char* exec_address;
+	int start_offset_p;
+	context* con;
 	
 	if (name == NULL) {
 		errorCodeTranslator(ERR_PCB_NONAME);
 		return;
 	}
 	if (strlen(name) > 15) {
-		errorCodeTranslator(ERR_PCB_NMETOLONG);
+		errorCodeTranslator(ERR_SUP_NAMLNG);
 		return;
 	}
-	/*if (Find_PCB(name) != NULL) {
+	if (Find_PCB(name) != NULL) {
 		errorCodeTranslator(ERR_PCB_NMEEXISTS);
 		return;
-	}*/  
+	}  
 	if(priorityc > 127 || priorityc < (-128)) {
 		errorCodeTranslator(ERR_PCB_INVPRIORITY);
 		return;
 	}
+	//returns size of memory needed to hold program
+	error = sys_check_program("\0", prog_name, &prog_len_p, &start_offset_p);
+	
+   if (error != 0) {
+      errorCodeTranslator(error);
+      return NULL;
+   }
+	       
 	pcb1 = allocatePcb();
 	strcpy(pcb1->process_name, name);
 
@@ -196,35 +212,46 @@ pcb* Load_Program(char name[], char prog_name[], int priorityc, char dir_name[])
 	pcb1->process_class = APPLICATION;
 	pcb1->state = SUSPENDED_READY;
 
-  //returns size of memory needed to hold program
-	size = sys_check_program(NULL, prog_name, prog_len_p, start_offset_p);
+  
 
   //sys_alloc_mem inits the memory for the program
-	load_addr = sys_alloc_mem(size);
+	load_address = (unsigned char*) sys_alloc_mem(prog_len_p);
 	
-	//sets the pcbs exec_addr by calculing stack offset
-	pcb1->exec_addr = *load_addr + *start_offset_p;
 	
-	//call load program passing in calculated values from earlier
-	sys_load_program (load_addr, 4096, NULL, prog_name);
+	error = sys_load_program (load_address, prog_len_p, "\0", prog_name);
+	if (error != 0) {
+      errorCodeTranslator(error);
+      Free_PCB(pcb1);
+      return NULL;
+  }
 	
-	pcb1 = save_context(pcb1); //this is supposed to setup the pcb context
-	Insert_PCB(pcb1); // should go to the suspended ready queue
+	
+	//sets the pcbs exec_addr by calculing stack offset  ERROR IS HERE!!!!
+	pcb1->load = load_address;
+	pcb1->execution = pcb1->load + start_offset_p;
+	//pcb1->execution = start_offset_p;
+	pcb1->memory = prog_len_p;
+	
+	  
+
+    con = (context*)pcb1->stack_top;
+  	con->CS = FP_SEG(pcb1->execution);
+  	con->IP = FP_OFF(pcb1->execution);
+  	con->FLAGS = 0x200;
+  	con->DS = _DS;
+  	con->ES = _ES;
+  	
+  	//call load program passing in calculated values from earlier
+    
+    if (error !=0)  printf("load failed\n");
+    else printf("load succeeded\n");    
+  // if (error != 0) {
+	  Insert_PCB(pcb1); // should go to the suspended ready queue
+	 //}
 	return pcb1;
 }
 
-pcb* save_context(pcb* pcb1) {
-    context* con;
 
-    con = (context*)pcb1->stack_top;
-  	
-  	con->DS = _DS;
-  	con->ES = _ES;
-  	con->CS = FP_SEG(pcb1->exec_addr);
-  	con->IP = FP_OFF(pcb1->load_addr);
-  	//con->FLAGS = 0x200;
-  	return pcb1;
-}
 
 pcb* Find_PCB_Ready(char* name) {
    pcb* walk;
@@ -335,7 +362,7 @@ pcb* Find_PCB(char *name){
   }
   
   if (ptr == NULL) {
-      printf("PCB %s not available", name);
+      //printf("PCB %s not available.\n", name);
       return NULL;
   } else {
       return ptr;
@@ -387,7 +414,7 @@ void priority_insert(queue* q, pcb *ptr){
         } else {      
       	    ptr->next = walk;
             ptr->prev = prev;
-            
+      
       	    prev->next = ptr;
       	    walk->prev = ptr;
             return;
@@ -463,10 +490,13 @@ pcb* Remove_PCB(pcb *pcb1){
   pcb* next;
   int state;
   
+  
+  
+   if (pcb1 == NULL) {
+      return NULL;
+   }
+  
   state = pcb1->state;
-  
-  
-  
  // printf("Pcb name: %s\n\n\0",pcb1->process_name);
   if (state == READY) {                    //choose q to remove from 
       q = readyQ;  
@@ -691,17 +721,17 @@ void suspend(char* pcb_name){
 	ptr= Find_PCB(pcb_name);
 	
 	if(ptr != NULL) {	
-		if(ptr->state= READY || ptr->state == RUNNING) {
+		if(ptr->state == READY || ptr->state == RUNNING) {
     		Remove_PCB(ptr);
-    		ptr->state= 103;
+    		ptr->state= SUSPENDED_READY;
     		Insert_PCB(ptr);
-    		printf("PCB is now suspended");
+    		printf("PCB is now suspended.\n");
 		}
-		if(ptr->state= BLOCKED) {
+		if(ptr->state == BLOCKED) {
     		Remove_PCB(ptr);
-    		ptr->state= 104;
+    		ptr->state= SUSPENDED_BLOCKED;
     		Insert_PCB(ptr);
-    		printf("PCB is now suspended");
+    		printf("PCB is now suspended.\n");
 		}
 	}
 	return;
@@ -709,10 +739,11 @@ void suspend(char* pcb_name){
 
 void resume(char* pcb_name){
 	pcb* ptr;
-	ptr= Find_PCB(pcb_name);
+	ptr = Find_PCB(pcb_name);
+	printf("ptr: %s\n", ptr->process_name);
 	if(ptr != NULL) {
 		if (ptr->state= SUSPENDED_READY) {
-			Remove_PCB(ptr);
+			ptr = Remove_PCB(ptr);
 			ptr->state= READY;
 			Insert_PCB(ptr);
 			//printf("PCB has now resumed.\n");
@@ -952,7 +983,6 @@ int parseCommand(char *commandString) {
 			return 0;
 			} else {
 				printf("Deleting pcb '%s'\n",arg2);
-
 				Remove_PCB(Find_PCB(arg2));
 				Free_PCB(arg2);
 				
@@ -1004,8 +1034,9 @@ int parseCommand(char *commandString) {
     }
     else {
       //add function when function is ready
-      printf("Suspending %s\n",arg1);
+      //printf("Suspending %s\n",arg1);
       suspend(arg1);
+      return 0;
     }
   }
   
@@ -1245,12 +1276,12 @@ void interrupt sys_call() {
         Insert_PCB(cop);
         result = 0;
     } else if (param_p->op_code == EXIT) {
-    		Free_PCB(Remove_PCB(cop)); //not sure this is really the function to call but seems so
+    		Free_PCB(cop); //not sure this is really the function to call but seems so
     		result = -1;
     } 
     
     
-    context_p->AX= result; //resetting the AX to the value returned, used later by sys_req no idea what for=    
+    //context_p->AX= result; //resetting the AX to the value returned, used later by sys_req no idea what for=    
     dispatcher();
 }       
 /*
@@ -1370,10 +1401,14 @@ void terminate_process(char* pcb_name){
   	pcb* pcb2;
   	pcb1= Find_PCB(pcb_name);
   	
-  	if(pcb1== NULL)
+  	if(pcb1== NULL) {
   		  printf("Process does not exist");
-  	pcb2= Remove_PCB(pcb1);
-  	Free_PCB(pcb2);
+  		  return;
+    } else {
+      	pcb2= Remove_PCB(pcb1);
+      	Free_PCB(pcb2);
+      	return;
+  	}
 }
 
 int command_check(char* name) {
@@ -1453,9 +1488,9 @@ int command_check(char* name) {
 }
 
 void ver () {
-	printf("This is the version #2.4.65 of GeckOs\n");
-	printf("Module #R2\n");
-	printf("Last Modified: 10/08/2010\n");
+	printf("This is the version #4.3.99 of GeckOs\n");
+	printf("Module #R4\n");
+	printf("Last Modified: 11/12/2010\n");
 }
 
 void removeNL(char *s) {

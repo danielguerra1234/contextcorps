@@ -114,10 +114,6 @@ int errorCodeTranslator(int code) {
 		  printf("Invalid Day\n");
 		  return 0;
 
-	case (-400):
-		  printf("Name is too long\n");
-		  return 0;
-
 	case (-401):
 		  printf("You must supply a name\n");
 		  return 0;

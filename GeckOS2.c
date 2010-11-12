@@ -104,6 +104,7 @@ int main(void) {
 }
 
 void init() {
+  int error;
   char greeting[20] = "Welcome to GeckOS!\0";
 	clearScreen();
 	puts(greeting);
@@ -113,7 +114,11 @@ void init() {
 	blockQ = initQueue(blockQ, "Blocked\0");
 	suspendreadyQ = initQueue(suspendreadyQ, "Suspended Ready\0");
 	suspendblockQ = initQueue(suspendblockQ, "Suspended Blocked\0");
-	sys_set_vec(sys_call);  
+	error = sys_set_vec(sys_call);  
+	if (error != 0) {
+	   errorCodeTranslator(error);
+	   return;
+	}
 }
 
 //Structure functions for PCB and QUEUE
@@ -175,7 +180,7 @@ pcb* Setup_PCB(char name[], int priorityc, int classc) {
 		return;
 	}
 	if (strlen(name) > 15) {
-		errorCodeTranslator(ERR_PCB_NMETOLONG);
+		errorCodeTranslator(ERR_SUP_NAMLNG);
 		return;
 	}
 	/*if (Find_PCB(name) != NULL) {
@@ -211,7 +216,7 @@ pcb* Find_PCB_Ready(char* name) {
    walk = readyQ->head; 
 	 
 	 if (walk == NULL) {
-    		printf("Queue not available or is empty.\n");
+    		//printf("Queue not available or is empty.\n");
     		return NULL;
     }
      
@@ -437,6 +442,10 @@ pcb* Remove_PCB(pcb *pcb1){
   pcb* prev;
   pcb* next;
   int state;
+  
+  if (pcb1 == NULL)
+      return NULL;
+  
   
   state = pcb1->state;
   
@@ -1365,9 +1374,9 @@ int command_check(char* name) {
 }
 
 void ver () {
-	printf("This is the version #2.4.65 of GeckOs\n");
-	printf("Module #R2\n");
-	printf("Last Modified: 10/08/2010\n");
+	printf("This is the version #3.9.69 of GeckOs\n");
+	printf("Module #R3\n");
+	printf("Last Modified: 11/08/2010\n");
 }
 
 void removeNL(char *s) {
