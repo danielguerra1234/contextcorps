@@ -17,7 +17,8 @@ void help(char *command){
         "suspend: suspends the desired pcb\n"
         "priority: commands pertaining to pcb priority. Enter 'help priority' to see more info\n"
         "resume: resumes the desire pcb\n"
-        "show: commands pertaining to display pcb information. Enter 'help show' for more information\n");
+        "show: commands pertaining to display pcb information. Enter 'help show' for more information\n"
+        "dispatch: start round robin dispatching.\n");
 		return;
 	}
 	if (strcmp(command,"help") == 0) {
@@ -78,6 +79,14 @@ void help(char *command){
   }
   if (strcmp(command, "show") == 0) {
     printf("The show command displays information of the pcb(s).  The different options are -p(pcb) -a(all) -r(ready) -b(blocked).\n");
+    return;
+  }
+  if (strcmp(command, "dispatch") == 0) {
+    printf("The dispatch command starts the round robin execution. \n");
+    return;
+  }
+  if (strcmp(command, "load") == 0) {
+    printf("The load command loads a program into a pcb.  Takes process_name, program_name(without extension), priority, and directory_name.\n");
     return;
   }
 	printf("Could not find help for command: %s", command);

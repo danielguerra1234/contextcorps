@@ -144,6 +144,15 @@ unsigned char buffer[SIZE];
 
 //############PCB Functions####################
 //PCB error codes start in the 400
+
+/***************************
+ *Name: Allocate_PCB
+ *Parameters: none
+ *Calls:      sizeof
+ *            sys_alloc_mem
+ *Returns:    pcb
+ */ 
+
 pcb *allocatePcb(){
 	int size = sizeof(pcb);
 	int *address;
@@ -155,6 +164,13 @@ pcb *allocatePcb(){
 	pcb_ptr->stack_top = pcb_ptr->stack_base + 1024 - sizeof(context);
 	return (pcb_ptr);
 }
+
+/******************************
+ *Name: Free_PCB
+ *Parameters: pcb
+ *Calls:    sys_free_mem
+ *Return:   nothing        
+ */    
 
 void Free_PCB(pcb *ptr) { //pcb pointer
   if (ptr == NULL){
@@ -169,6 +185,19 @@ void Free_PCB(pcb *ptr) { //pcb pointer
        sys_free_mem(ptr);
   }
 }
+
+/*********************************************
+ *Function: Load Program
+ *Calls:    sys_alloc_mem
+ *          allocatePCB
+ *          Find_PCB
+ *          sys_load_program
+ *          sys_check_program
+ *          Insert_PCB 
+ *          
+ *Returns:  PCB
+ *        
+ */
    
 pcb* Load_Program(char name[], char prog_name[], int priorityc, char dir_name[]) {
 	pcb* pcb1;
@@ -243,15 +272,21 @@ pcb* Load_Program(char name[], char prog_name[], int priorityc, char dir_name[])
   	
   	//call load program passing in calculated values from earlier
     
-    if (error !=0)  printf("load failed\n");
-    else printf("load succeeded\n");    
   // if (error != 0) {
 	  Insert_PCB(pcb1); // should go to the suspended ready queue
 	 //}
 	return pcb1;
 }
 
-
+/**************************
+ *Name: Find_PCB_Ready
+ *Parameters:     name
+ *calls:          none
+ *returns:        pcb
+ *
+ *Desc:           Searchs Ready Q only
+ *   
+ */    
 
 pcb* Find_PCB_Ready(char* name) {
    pcb* walk;
@@ -280,6 +315,16 @@ pcb* Find_PCB_Ready(char* name) {
 	return NULL;
 }
 
+/**************************
+ *Name: Find_PCB_Blocked
+ *Parameters:     name
+ *calls:          none
+ *returns:        pcb
+ *
+ *Desc:           Searchs Block Q only
+ *   
+ */ 
+
 pcb* Find_PCB_Blocked(char* name) {
     pcb* walk;
     int check;
@@ -301,6 +346,16 @@ pcb* Find_PCB_Blocked(char* name) {
     return NULL;
 }
 
+/**************************
+ *Name: Find_PCB_Suspended_Ready
+ *Parameters:     name
+ *calls:          none
+ *returns:        pcb
+ *
+ *Desc:           Searchs Suspended Ready Q only
+ *   
+ */ 
+
 pcb* Find_PCB_Suspended_Ready(char* name) {
     pcb* walk;
     int check;
@@ -321,6 +376,16 @@ pcb* Find_PCB_Suspended_Ready(char* name) {
       }
 }
 
+/**************************
+ *Name: Find_PCB_Suspended_Blcoked
+ *Parameters:     name
+ *calls:          none
+ *returns:        pcb
+ *
+ *Desc:           Searchs Suspended Blocked Q only
+ *   
+ */ 
+
 pcb* Find_PCB_Suspended_Blocked(char* name) {
     pcb* walk;
     int check;
@@ -340,6 +405,15 @@ pcb* Find_PCB_Suspended_Blocked(char* name) {
             walk = walk->next;
       }
 }
+
+/**************************
+ *Name: Find_PCB
+ *Parameters: name
+ *Calls:    Find_PCB_Ready
+ *          Find_PCB_Blocked
+ *          Find_PCB_Suspended_Ready
+ *          Find_PCB_Suspended_Blocked  
+ */
 
 pcb* Find_PCB(char *name){
 	pcb* ptr;
@@ -369,6 +443,13 @@ pcb* Find_PCB(char *name){
   }  
 	
 }
+
+/***************************
+ *Name:         priority_insert
+ *Parameters:   queue*, pcb*
+ *Calls:        none
+ *Returns:      Void
+ */   
 
 void priority_insert(queue* q, pcb *ptr){
   pcb* walk; 
@@ -565,12 +646,11 @@ void Show_PCB(char* name) {
   pcb* pcbPtr;
   pcb* pcbPtr2;
   char* temp;
-  //pcbPtr = Find_PCB(name);
+  char* temp2;
   if (FALSE) {
     printf("PCB: %s does not exist.\n\n",name);
     return;
   } else {
-    //pcbPtr2 = Find_PCB(name);
     pcbPtr2 = Find_PCB(name);
     if (pcbPtr2 == NULL) {
       //printf("PCB not found.\n");
@@ -578,18 +658,27 @@ void Show_PCB(char* name) {
     }
     if (pcbPtr2->state == RUNNING) {
       temp = "RUNNING";  
-    } 
-    else if (pcbPtr2->state == READY) {
+    } else if (pcbPtr2->state == READY) {
       temp = "READY";
-    }
-    else {
+    } else if (pcbPtr2->state == BLOCKED) {
+      temp = "READY";
+    } else if (pcbPtr2->state == SUSPENDED_READY) {
+      temp = "READY";
+    } else if (pcbPtr2->state == SUSPENDED_BLOCKED) {
+      temp = "READY";
+    } else {
       temp = "INVALID STATE";
+    }
+    
+    if (pcbPtr2->process_class == APPLICATION) {
+       temp2 = "APPLICATION"; 
     }
 
     printf("Name: %s\n" 
             "Priority: %d\n" 
-            "Process_Class: %d\n" 
-            "State: %s\n\n",pcbPtr2->process_name, pcbPtr2->priority, pcbPtr2->process_class, temp);
+            "Process_Class: %s\n" 
+            "State: %s\n"
+            "Memory %i\n\n",pcbPtr2->process_name, pcbPtr2->priority, temp2, temp, pcbPtr2->memory);
     return;
   }
 }
@@ -805,6 +894,16 @@ int parseCommand(char *commandString) {
         return 0;
      }
   }
+  
+  if (strcmp(command, "terminate") == 0) {
+      if (arg1 == NULL) {
+          printf("requires argument.\n");
+      }
+      else {
+          terminate_process((char*)arg1);
+          return 0;
+      }
+  }
 	
 	if (strcmp(command,alias_c) == 0) {
 	   if (arg1 == NULL || arg2 == NULL) {                   //Check args
@@ -818,6 +917,15 @@ int parseCommand(char *commandString) {
      }
      
      if (command_check(arg2) == 0) {
+        return 0;
+     }
+     
+     if (strcmp(arg1, "dispatch") == 0) {
+        printf("We do not allow the aliasing of the dispatch function.\n");
+        return 0;
+     }
+     if (strcmp(arg1, "load") == 0) {
+        printf("We do not allow the aliasing of the load function.\n");
         return 0;
      }
      
@@ -895,7 +1003,6 @@ int parseCommand(char *commandString) {
         priority_c = strdup(arg2);
         return 0;
      }
-     
      else 
       return 0;
   }

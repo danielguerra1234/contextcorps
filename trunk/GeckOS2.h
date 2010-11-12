@@ -107,7 +107,7 @@ void suspend(char* name);
 void resume(char* name);
 void testn_R3();
 
-
+void terminate_process(char* name);
 
 void init();
 int parseCommand(char *commandString);
