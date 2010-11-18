@@ -48,17 +48,19 @@
 #define EVENT_FLAG_DONE 1
 #define EVENT_FLAG_NOT_DONE 0
 
-typedef struct dcb{
-
-	int open; 
+typedef struct{
+	int flag; 
 	int *event_flag; 
 	int status;  
+	//input counters and buffers
 	char *in_buff; 
 	int *in_count; 
 	int in_done;  
+	//output counters and buffers
 	char *out_buff;  
 	int *out_count; 
 	int out_done;   
+	//ring buffer
 	char ring_buffer[RING_BUFF_SIZE];  
 	int ring_buffer_in;   
 	int ring_buffer_out; 
