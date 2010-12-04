@@ -57,6 +57,8 @@ pcb* cop;
 params* param_p;
 context* context_p;
 
+
+
 int main(void) {
   pcb* fake;
 	int inputLength = 100;
@@ -123,7 +125,15 @@ void init() {
 	} 
 }
 
-//Structure functions for PCB and QUEUE
+/***************************
+ *Name: initQueue
+ *Parameters: queue*, char*
+ *Calls:      sys_alloc_mem
+ *Returns:    pcb
+ *Desc:       This function inits the queue that is passed in with the name also
+ *            passed in.  
+ */
+ 
 queue* initQueue(queue* newQ, char* name) {
   
   newQ = (queue*)sys_alloc_mem(sizeof(queue));
@@ -151,7 +161,9 @@ unsigned char buffer[SIZE];
  *Calls:      sizeof
  *            sys_alloc_mem
  *Returns:    pcb
- */ 
+ *Desc:       This function allocates the memory for a pcb by settings its 
+ *            stack_base and stack_top  
+ ***************************/ 
 
 pcb *allocatePcb(){
 	int size = sizeof(pcb);
@@ -169,10 +181,12 @@ pcb *allocatePcb(){
  *Name: Free_PCB
  *Parameters: pcb
  *Calls:    sys_free_mem
- *Return:   nothing        
+ *Return:   nothing   
+ *Desc:     This function calls sys_free_mem to release the memory for the ptr*
+ *          along with the stack base       
  */    
 
-void Free_PCB(pcb *ptr) { //pcb pointer
+void Free_PCB(pcb *ptr) { 
   if (ptr == NULL){
       printf("PCB not found, can not be releaseed.\n");
       return 0;
@@ -194,9 +208,9 @@ void Free_PCB(pcb *ptr) { //pcb pointer
  *          sys_load_program
  *          sys_check_program
  *          Insert_PCB 
- *          
  *Returns:  PCB
- *        
+ *Desc:     The function takes the parameters and created a pcb with a process
+ *          attached by address. The context stack is kept so it may be restored 
  */
    
 pcb* Load_Program(char name[], char prog_name[], int priorityc, char dir_name[]) {
@@ -280,7 +294,7 @@ pcb* Load_Program(char name[], char prog_name[], int priorityc, char dir_name[])
 
 /**************************
  *Name: Find_PCB_Ready
- *Parameters:     name
+ *Parameters:     char*
  *calls:          none
  *returns:        pcb
  *
@@ -413,6 +427,8 @@ pcb* Find_PCB_Suspended_Blocked(char* name) {
  *          Find_PCB_Blocked
  *          Find_PCB_Suspended_Ready
  *          Find_PCB_Suspended_Blocked  
+ *Desc:     The function uses the 4 defined search functions already written 
+ *          above to search through all queues  
  */
 
 pcb* Find_PCB(char *name){
@@ -449,6 +465,9 @@ pcb* Find_PCB(char *name){
  *Parameters:   queue*, pcb*
  *Calls:        none
  *Returns:      Void
+ *Desc:         The functions accepts which queue to insert into to and which 
+ *              ptr to insert.  It checks for where to insert and keeps track by
+ *              lowest first.   
  */   
 
 void priority_insert(queue* q, pcb *ptr){
@@ -514,6 +533,14 @@ void priority_insert(queue* q, pcb *ptr){
   }
 }
 
+/***************************
+ *Name: FIFO_insert
+ *Parameters: queue*, ptr*
+ *Calls:      none
+ *Returns:    void
+ *Desc:       The functions simply inserts the pcb at the end of the queue 
+ */
+
 void FIFO_insert(queue* q, pcb *ptr){
       if (q->head == NULL) {                              //No PCBs in queue
           //printf("Queue head in Fifo check.\n\n");
@@ -537,33 +564,49 @@ void FIFO_insert(queue* q, pcb *ptr){
     }
 }
 
+/***************************
+ *Name: Insert_PCB
+ *Parameters: pcb*
+ *Calls:      FIFO_insert
+ *            priority_insert 
+ *Returns:    pcb
+ *Desc:       Is simply a delegator of which insert algorithm to call based on
+ *            the state  
+ */
+
 void Insert_PCB(pcb* pcb1){
   int state;
   state = pcb1->state;
-  //printf("Testing state before if statements in insert. state: %d\n\n", pcb1->state);
   
-  if (state == READY) {
+  if (state == READY) {             // READY
     priority_insert(readyQ, pcb1);
-    //printf("ReadyQ name: %s Head: %s\n\n", readyQ->name, (readyQ->head)->process_name);
     return;
   }  
   
-  if (state == BLOCKED) {
-    //printf("Testing Blocked State on insert.\n\n");
+  if (state == BLOCKED) {           // BLOCKED
     FIFO_insert(blockQ, pcb1);
     return;
   }  
   
-  if(state == SUSPENDED_READY) {
+  if(state == SUSPENDED_READY) {    // SUSPENDED_READY
     FIFO_insert(suspendreadyQ, pcb1);
     return;
   }  
   
-  if(state == SUSPENDED_BLOCKED) {
+  if(state == SUSPENDED_BLOCKED) {  // SUSPENDED_BLOCKED
     FIFO_insert(suspendblockQ, pcb1);
     return;
   }
 }
+
+/***************************
+ *Name: Remove_PCB
+ *Parameters: pcb*
+ *Calls:      
+ *Returns:    pcb
+ *Desc:       This function removes the pcb from the queue it is currently 
+ *            in. The queue is determined based on the state.  
+ */
 
 pcb* Remove_PCB(pcb *pcb1){
   queue* q;
@@ -632,7 +675,14 @@ pcb* Remove_PCB(pcb *pcb1){
   //return 0; 
 }
 
-
+/***************************
+ *Name: Set_Priority
+ *Parameters: char*, int
+ *Calls:      Find_PCB
+ *Returns:    void
+ *Desc:       The function finds the pch using the Find function and changes
+ *            the priority. 
+ */
 
 void Set_Priority(char* name, int p) {
   pcb* procB;
@@ -640,6 +690,15 @@ void Set_Priority(char* name, int p) {
   procB->priority = p;
   return;  
 }
+
+/***************************
+ *Name: Show_PCB
+ *Parameters: char*
+ *Calls:      Find_PCB
+ *Returns:    void
+ *Desc:       The function finds the pcb using the find function and prints the 
+ *            details of the pcb  
+ */
 
 void Show_PCB(char* name) {
   
@@ -683,6 +742,14 @@ void Show_PCB(char* name) {
   }
 }
 
+/***************************
+ *Name: Show_ready
+ *Parameters: none
+ *Calls:      none
+ *Returns:    void
+ *Desc:       The function prints all the pcbs in the ready queue.  
+ */
+
 void show_ready(){
 	 pcb* walk;
 	 int check;
@@ -709,6 +776,15 @@ void show_ready(){
 	return NULL;
 }
 
+/***************************
+ *Name: show_suspended_ready
+ *Parameters: none
+ *Calls:      none
+ *Returns:    void
+ *Desc:       The function prints the name of all the pcbs in the suspended
+ *            ready queue   
+ */
+
 void show_suspended_ready(){
 	 pcb* walk;
 	 int check;
@@ -734,6 +810,14 @@ void show_suspended_ready(){
 	i = 1;
 	return NULL;
 }
+
+/***************************
+ *Name: show_blocked
+ *Parameters: none
+ *Calls:      none
+ *Returns:    void
+ *Desc:       The function prints the name of all the pcbs in the blocked queue   
+ */
 
 void show_blocked(){
 	 pcb* walk;
@@ -762,6 +846,14 @@ void show_blocked(){
 	return NULL;
 }
 
+/***************************
+ *Name: show_all
+ *Parameters: none
+ *Calls:      none
+ *Returns:    void
+ *Desc:       The function prints the name of all the pcbs in all the queues.
+ */ 
+
 void show_all(){
 	 pcb* walk;
 	 int check;
@@ -772,6 +864,16 @@ void show_all(){
    
 	return NULL;
 }
+
+/***************************
+ *Name:       block
+ *Parameters: pcb_name
+ *Calls:      Find_PCB
+ *            Remove_PCB
+ *            Insert_PCB  
+ *Returns:    void
+ *Desc:       This functions changes the state of the pcb found to blocked   
+ */
 
 void block(char* pcb_name){
 	pcb* ptr;
@@ -789,6 +891,16 @@ void block(char* pcb_name){
 	return;
 }
 
+/***************************
+ *Name:       unblock
+ *Parameters: pcb_name
+ *Calls:      Find_PCB
+ *            Remove_PCB
+ *            Insert_PCB  
+ *Returns:    void
+ *Desc:       This functions changes the state of the pcb found to unblocked and 
+ *            insert into the ready queue   
+ */
 
 void unblock(char* pcb_name){
 	pcb* ptr;
@@ -804,6 +916,18 @@ void unblock(char* pcb_name){
 	}
 	return;
 }
+
+/***************************
+ *Name:       suspend
+ *Parameters: pcb_name
+ *Calls:      Find_PCB
+ *            Remove_PCB
+ *            Insert_PCB  
+ *Returns:    void
+ *Desc:       This functions changes the state of the pcb found to suspended 
+ *            ready or suspended blocked depending on which queue the pcb was 
+ *            found.    
+ */
 
 void suspend(char* pcb_name){
 	pcb* ptr;
@@ -825,6 +949,17 @@ void suspend(char* pcb_name){
 	}
 	return;
 }
+
+/***************************
+ *Name:       resume
+ *Parameters: pcb_name
+ *Calls:      Find_PCB
+ *            Remove_PCB
+ *            Insert_PCB  
+ *Returns:    void
+ *Desc:       This function changes the state to either ready or blocked 
+ *            depending on which queue it was found.   
+ */
 
 void resume(char* pcb_name){
 	pcb* ptr;
@@ -849,6 +984,29 @@ void resume(char* pcb_name){
 	return;
 }
 
+/***************************
+ *Name:       parseCommand
+ *Parameters: char*
+ *Calls:      Load_Program
+ *            ver
+ *            dispatch
+ *            clearScreen
+ *            terminate_process
+ *            changeDir
+ *            displayDate
+ *            changeDate
+ *            block
+ *            unblock
+ *            resume
+ *            suspend
+ *            dir
+ *            exit
+ *            show_all
+ *            show_ready
+ *            show_blocked                   
+ *Returns:    void
+ *Desc:       This functions changes the state of the pcb found to blocked   
+ */
 
 //NOTE: a return value other than 0 will result in program exit
 int parseCommand(char *commandString) {
@@ -1283,14 +1441,38 @@ void listDir() {
 
 }
 
+/***************************
+ *Name:       changeDir
+ *Parameters: DIR
+ *Calls:      opendir  
+ *Returns:    void
+ *Desc:       changes directory to which is passed in.   
+ */
+
 void changeDir(DIR *arg) {
       dp = opendir(arg);
       if (dp == NULL) printf("Could not open %s", arg);
 }
 
+/***************************
+ *Name:       setPrompt
+ *Parameters: char*
+ *Calls:      none  
+ *Returns:    void
+ *Desc:       This functions changes the global variable prompt, XTRA CRED  
+ */
+
 void setPrompt(char *s) {
 	prompt = s;
 }
+
+/***************************
+ *Name:       displayDate
+ *Parameters: none
+ *Calls:      sys_get_date 
+ *Returns:    void
+ *Desc:       This functions prints the system date  
+ */
 
 void displayDate() {
 	sys_get_date(date_p);
@@ -1299,10 +1481,28 @@ void displayDate() {
 	printf("%d\n",date_p->day);
 }
 
+/***************************
+ *Name:       clearScreen
+ *Parameters: none
+ *Calls:      clrscr  
+ *Returns:    void
+ *Desc:       Clears the screen  
+ */
+
 void clearScreen() {
  clrscr();
  return;
 }
+
+/***************************
+ *Name:       changeDate
+ *Parameters: char*, char*, char*
+ *Calls:      atoi
+ *            errorCodeTranslator
+ *            displayDate    
+ *Returns:    void
+ *Desc:       This functions changes the state of the pcb found to blocked   
+ */
 
 void changeDate(char *yearc, char *monthc, char *dayc) {
 	int i;
@@ -1364,6 +1564,20 @@ void changeDate(char *yearc, char *monthc, char *dayc) {
 	}
 }
     	
+/***************************
+ *Name:       sys_call (interrupt)
+ *Parameters: none
+ *Calls:      FP_SEG
+ *            FP_OFF
+ *            sizeof
+ *            Insert_PCB
+ *            Free_PCB
+ *            dispatcher       
+ *Returns:    void
+ *Desc:       This is an interrupt that saves the current program state then
+ *            uses a temporary stack to keep the processes running correctly 
+ *            without trashes the system stack.     
+ */ 
  
 void interrupt sys_call() {
     static int result;
@@ -1474,6 +1688,20 @@ void testn_R3(){
 }
 */
 
+/***************************
+ *Name:       dispatcher (interrupt)
+ *Parameters: pcb_name
+ *Calls:      Remove_PCB
+ *            FP_SEG
+ *            FP_OFF
+ *                 
+ *Returns:    void
+ *Desc:       This interrupt sets the temp stack and then gets the next pcb.
+ *            OR
+ *            This will reset the system stack back to normal once the process 
+ *            is finished running.       
+ */
+
 void interrupt dispatcher(){
  	
  	static pcb* head; //HEAD of the ready queue
@@ -1503,6 +1731,17 @@ void interrupt dispatcher(){
 		  } 
 }
 
+/***************************
+ *Name:       terminate_process
+ *Parameters: pcb_name
+ *Calls:      Find_PCB
+ *            Remove_PCB
+ *            Insert_PCB  
+ *Returns:    void
+ *Desc:       This function finds, removes, and frees the pcb, ending the 
+ *            process.   
+ */
+
 void terminate_process(char* pcb_name){
   	pcb* pcb1;
   	pcb* pcb2;
@@ -1517,6 +1756,14 @@ void terminate_process(char* pcb_name){
       	return;
   	}
 }
+
+/***************************
+ *Name:       command_check
+ *Parameters: pcb_name
+ *Calls:      none  
+ *Returns:    int
+ *Desc:       This functions checks all commands for the alias command.   
+ */
 
 int command_check(char* name) {
      int check = 1;
@@ -1594,15 +1841,40 @@ int command_check(char* name) {
      }
 }
 
+/***************************
+ *Name:       ver
+ *Parameters: none
+ *Calls:      none  
+ *Returns:    void
+ *Desc:       This function simply shows the version of the project.  
+ */
+
 void ver () {
-	printf("This is the version #4.3.99 of GeckOs\n");
-	printf("Module #R4\n");
-	printf("Last Modified: 11/12/2010\n");
+	printf("This is the version #6.1.1 of GeckOs\n");
+	printf("Module #R6\n");
+	printf("Last Modified: 12/4/2010\n");
 }
+
+/***************************
+ *Name:       removeNL
+ *Parameters: char*
+ *Calls:      strcspn 
+ *Returns:    void
+ *Desc:       This functions removes the new line character from the end of a
+ *            string.   
+ */
 
 void removeNL(char *s) {
 	s[strcspn(s, "\n")] = '\0';
 }
+
+/***************************
+ *Name:       terminate
+ *Parameters: none
+ *Calls:      sys_exit  
+ *Returns:    void
+ *Desc:       This function closes the mpx program.   
+ */
 
 void terminate() {
 	printf("Goodbye.\n");
