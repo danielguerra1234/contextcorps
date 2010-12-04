@@ -1,6 +1,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+/***************************
+ *Name:       help
+ *Parameters: char*
+ *Calls:      none  
+ *Returns:    void
+ *Desc:       This function displays a list and small description if the word
+ *            "help" is passed in.  If help and string is passed in, it shows 
+ *            detailed information about the function.     
+ */
+
 void help(char *command){
 	if (command == NULL) {
 		printf("Current list of commands:\n"

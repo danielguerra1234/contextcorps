@@ -7,6 +7,15 @@
 
 #include "Errors.h"
 
+/***************************
+ *Name:       errorCodeTranslator
+ *Parameters: int
+ *Calls:      none  
+ *Returns:    int
+ *Desc:       This function accepts an error code int and displays the proper 
+ *            message   
+ */
+
 int errorCodeTranslator(int code) {
 	printf("ERROR (%d): ", code);
 	switch (code) {
