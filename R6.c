@@ -7,10 +7,9 @@
  Description : R6, Turbo C-style
  ============================================================================
  */
-            
-#include "R5/r5.h"            
+                 
 #include "GeckOS2.h"
-#include "TRMDRIVE.h"
+
 
 //Global Variables:
 DIR *dp;
@@ -57,16 +56,31 @@ unsigned char sysStack[2048];
 pcb* cop;
 params* param_p;
 context* context_p;
-
-
+//dcb* com_port; 
+//dcb* term_port;
+//void interrupt (*old_int) ();
 
 int main(void) {
-  pcb* fake;
+	int e_flag;
 	init();
+	com_open((int*) &e_flag, 1200);
+	trm_open((int*) &e_flag);
 	init_R6();
-	//COMHAN();
+	dispatcher();
+	com_close();
+	trm_close();
+	//cleanup queues, 
+	//cleanup pcbs
+	//cleanup iods and iocbs
+	sys_exit();
 	return 0;
 }
+
+//initalize dcbs and iocbs
+void init_struct(){
+	
+}
+
 
 void init_R6() {
 
@@ -86,7 +100,7 @@ void init_R6() {
 	Insert_PCB(comhan);
 	
 	Load_Program("IDLE", "IDLE", 123, "\0");
-	dispatcher();
+	
 }
 
 int COMHAN() {
