@@ -95,7 +95,7 @@ void Insert_PCB(pcb*);
 pcb* Remove_PCB(pcb*);
 void Set_Priority(char*, int);
 queue* initQueue(queue*, char*);
-
+int COMHAN();
 //Show Functions
 void Show_PCB(char*);
 void Show_All();
@@ -110,6 +110,7 @@ void testn_R3();
 void terminate_process(char* name);
 
 void init();
+void init_R6();
 int parseCommand(char *commandString);
 void displayDate();
 void changeDate(char *year, char *month, char *day);

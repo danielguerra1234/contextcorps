@@ -21,14 +21,14 @@ void help(char *command){
 				"cd : changes directory -- Does not require -arguement\n"
 				"exit : closes the system\n"
 				"setprompt : sets the prompt with the given argument\n"
-        "pcb: commands pertaining to the pcb. Enter 'help pcb' to see more info\n"
-        "block: blocks the desired pcb\n"
-        "unblock: unblocks the desired pcb\n"
+        "pcb: commands pertaining to the pcb. Enter 'help pcb' to see more info:DEPRECATED\n"
+        "block: blocks the desired pcb: DEPRECATED\n"
+        "unblock: unblocks the desired pcb: DEPRECATED\n"
         "suspend: suspends the desired pcb\n"
         "priority: commands pertaining to pcb priority. Enter 'help priority' to see more info\n"
         "resume: resumes the desire pcb\n"
         "show: commands pertaining to display pcb information. Enter 'help show' for more information\n"
-        "dispatch: start round robin dispatching.\n");
+        "dispatch: start round robin dispatching: DEPRECATED\n");
 		return;
 	}
 	if (strcmp(command,"help") == 0) {
@@ -69,7 +69,7 @@ void help(char *command){
   }
   if (strcmp(command,"block") == 0) {
     printf("The block command allows the user to block a pcb.  This command accepts a name for an argument.\n");
-    return 0;
+    return;
   }
   if (strcmp(command,"unblock") == 0) {
     printf("The unblock command allows the user to unblock a pcb.  This command accepts a name for an argument.\n");
