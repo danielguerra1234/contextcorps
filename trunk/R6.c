@@ -10,7 +10,7 @@
             
 #include "R5/r5.h"            
 #include "GeckOS2.h"
-
+#include "TRMDRIVE.h"
 
 //Global Variables:
 DIR *dp;
@@ -64,8 +64,8 @@ int main(void) {
   pcb* fake;
 	init();
 	init_R6();
-	COMHAN();
-	
+	//COMHAN();
+	return 0;
 }
 
 void init_R6() {
@@ -86,6 +86,7 @@ void init_R6() {
 	Insert_PCB(comhan);
 	
 	Load_Program("IDLE", "IDLE", 123, "\0");
+	dispatcher();
 }
 
 int COMHAN() {
@@ -216,7 +217,7 @@ pcb *allocatePcb(){
 void Free_PCB(pcb *ptr) { 
   if (ptr == NULL){
       printf("PCB not found, can not be releaseed.\n");
-      return 0;
+      return;
   } else {
         if (ptr->load != NULL) {
           sys_free_mem(ptr->load);
@@ -237,11 +238,11 @@ pcb* Setup_PCB(char name[], int priorityc, int classc) {
 	
 	if (name == NULL) {
 		errorCodeTranslator(ERR_PCB_NONAME);
-		return;
+		return NULL;
 	}
 	if (strlen(name) > 15) {
 		errorCodeTranslator(ERR_SUP_NAMLNG);
-		return;
+		return NULL;
 	}
 	/*if (Find_PCB(name) != NULL) {
 		errorCodeTranslator(ERR_PCB_NMEEXISTS);
@@ -249,11 +250,11 @@ pcb* Setup_PCB(char name[], int priorityc, int classc) {
 	}*/  
 	if(priorityc > 127 || priorityc < (-128)) {
 		errorCodeTranslator(ERR_PCB_INVPRIORITY);
-		return;
+		return NULL;
 	}
 	if (class!= 1 && class!= 2) {
 		errorCodeTranslator(ERR_PCB_INVCLASS);
-		return;
+		return NULL;
 	}
 	
 	pcb1 = allocatePcb();
@@ -292,22 +293,22 @@ pcb* Load_Program(char name[], char prog_name[], int priorityc, char dir_name[])
 	
 	if (name == NULL) {
 		errorCodeTranslator(ERR_PCB_NONAME);
-		return;
+		return NULL;
 	}
 	if (strlen(name) > 15) {
 		errorCodeTranslator(ERR_SUP_NAMLNG);
-		return;
+		return NULL;
 	}
 	if (Find_PCB(name) != NULL) {
 		errorCodeTranslator(ERR_PCB_NMEEXISTS);
-		return;
+		return NULL;
 	}  
 	if(priorityc > 127 || priorityc < (-128)) {
 		errorCodeTranslator(ERR_PCB_INVPRIORITY);
-		return;
+		return NULL;
 	}
 	//returns size of memory needed to hold program
-	error = sys_check_program("\0", prog_name, &prog_len_p, &start_offset_p);
+	error = sys_check_program(dir_name, prog_name, &prog_len_p, &start_offset_p);
 	
    if (error != 0) {
       errorCodeTranslator(error);
@@ -367,7 +368,7 @@ pcb* Load_Program(char name[], char prog_name[], int priorityc, char dir_name[])
 pcb* Find_PCB_Ready(char* name) {
    pcb* walk;
 	 int check;
-	 int i = 0;
+	 
    walk = readyQ->head; 
 	 
 	 if (walk == NULL) {
@@ -387,7 +388,6 @@ pcb* Find_PCB_Ready(char* name) {
       
 	      walk = walk->next;
 		 }
-	i = 0;
 	return NULL;
 }
 
@@ -450,6 +450,7 @@ pcb* Find_PCB_Suspended_Ready(char* name) {
               
             walk = walk->next;
       }
+    return NULL;
 }
 
 /**************************
@@ -480,6 +481,7 @@ pcb* Find_PCB_Suspended_Blocked(char* name) {
               
             walk = walk->next;
       }
+      return NULL;
 }
 
 /**************************
@@ -546,8 +548,8 @@ void priority_insert(queue* q, pcb *ptr){
     
   if (walk == NULL) {           //Queue is empty, insert at head
     //printf("Walk is Null.\n");
-    ptr->next == NULL;
-    ptr->prev == NULL;
+    ptr->next = NULL;
+    ptr->prev = NULL;
     q->head = ptr;
     //(q->index)++;
     return;
@@ -718,7 +720,7 @@ pcb* Remove_PCB(pcb *pcb1){
   		     return pcb1;
 	      }
   //now, if the pcb is not the head    
-  } else if (pcb1->next = NULL && pcb1->prev != NULL){ //pcb1 is the last element in the queue
+  } else if (pcb1->next == NULL && pcb1->prev != NULL){ //pcb1 is the last element in the queue
           prev->next    = NULL;
           
           pcb1->next    = NULL;
@@ -734,7 +736,7 @@ pcb* Remove_PCB(pcb *pcb1){
           pcb1->prev  = NULL;  
           return pcb1;
       }    
-  //return 0; 
+  return NULL; 
 }
 
 /***************************
@@ -820,7 +822,7 @@ void show_ready(){
 	 
 	 if (walk == NULL) {
     		printf("Queue not available or is empty.\n");
-    		return NULL;
+    		return;
     }
    printf("Ready Queue:\n\n"); 
 	 while(walk != NULL) {
@@ -835,7 +837,7 @@ void show_ready(){
 	walk = walk->next;
 		 }
 	i = 1;
-	return NULL;
+	return;
 }
 
 /***************************
@@ -855,7 +857,7 @@ void show_suspended_ready(){
 	 
 	 if (walk == NULL) {
     		printf("Queue not available or is empty.\n");
-    		return NULL;
+    		return;
     }
    printf("Ready Queue:\n\n"); 
 	 while(walk != NULL) {
@@ -870,7 +872,7 @@ void show_suspended_ready(){
 	walk = walk->next;
 		 }
 	i = 1;
-	return NULL;
+	return;
 }
 
 /***************************
@@ -889,7 +891,7 @@ void show_blocked(){
 	 
 	 if (walk == NULL) {
     printf("Queue not available or is empty.\n");
-    return NULL;
+    return;
     } 
     printf("Blocked Queue:\n\n");
 	 while(walk != NULL) {
@@ -905,7 +907,7 @@ void show_blocked(){
 	walk = walk->next;
 		 }
 	i = 0;
-	return NULL;
+	return;
 }
 
 /***************************
@@ -924,7 +926,7 @@ void show_all(){
    show_ready();
    show_blocked();
    
-	return NULL;
+	return;
 }
 
 /***************************
@@ -1028,7 +1030,7 @@ void resume(char* pcb_name){
 	ptr = Find_PCB(pcb_name);
 	printf("ptr: %s\n", ptr->process_name);
 	if(ptr != NULL) {
-		if (ptr->state= SUSPENDED_READY) {
+		if (ptr->state == SUSPENDED_READY) {
 			ptr = Remove_PCB(ptr);
 			ptr->state= READY;
 			Insert_PCB(ptr);
@@ -1316,7 +1318,7 @@ int parseCommand(char *commandString) {
       		  	} else {
         			printf("Setting new priority:%d for PCB:%s",arg2,arg3);
         			Set_Priority(arg2, atoi(arg3));
-		return;
+		return 0;
       		}
       
     }
@@ -1481,7 +1483,7 @@ void listDir() {
        char *command;
        char *extension;
        if (dp != NULL) {
-	   while (ep = readdir(dp)) {
+	     while (ep == readdir(dp)) {
         	   
 		   command = strtok(ep->d_name, ".");
 		   extension = strtok(NULL, ".");
@@ -1493,6 +1495,7 @@ void listDir() {
        }else
 	   perror("Couldn't open the directory");
 
+     return;
 }
 
 /***************************
@@ -1855,8 +1858,5 @@ void removeNL(char *s) {
 
 void terminate() {
 	printf("Goodbye.\n");
-	
-	
-	
 	sys_exit();
 }

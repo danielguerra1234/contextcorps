@@ -72,6 +72,21 @@ typedef struct {
     int* count_addr;
     } params;
 
+typedef struct {
+    char name[50];
+    pcb* requestor;
+    int type;
+    char* location;
+    int* counter;
+    struct IOD* next;
+    }IOD;
+
+typedef struct {
+    int event_flag;
+    int count;
+    struct IOD* head;
+    struct IOD* tail;
+    } IOCB;
  
 
 
