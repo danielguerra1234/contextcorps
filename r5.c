@@ -52,7 +52,7 @@ int com_open(int *eflag_p, int baud_rate) {
        	disable(); 
        	mk = inportb(PIC_MASK);
 		mk = mk & ~0x10;  
-		outportb(PIC_MASK,mask);
+		outportb(PIC_MASK,mk);
 		enable();
 		//store 0x01 in the interrupt enable register
 		outportb(COM1_MC, 0x08);

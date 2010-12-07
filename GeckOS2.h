@@ -29,6 +29,7 @@
 #define SUSPENDED_READY 103
 #define SUSPENDED_BLOCKED 104
 
+
 typedef struct{ 
     unsigned int BP, DI, SI, DS, ES; 
     unsigned int DX, CX, BX, AX; 
@@ -126,6 +127,9 @@ void terminate_process(char* name);
 
 void init();
 void init_R6();
+void init_iocb();
+void process_io(IOD* new_iod);
+void io_scheduler();
 int parseCommand(char *commandString);
 void displayDate();
 void changeDate(char *year, char *month, char *day);
