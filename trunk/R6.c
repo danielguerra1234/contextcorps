@@ -24,6 +24,7 @@ queue* blockQ;
 queue* suspendreadyQ;
 queue* suspendblockQ; 
 
+
 char* commands[50];
 char* cc;
 int id_com = 0;
@@ -56,6 +57,8 @@ unsigned char sysStack[2048];
 pcb* cop;
 params* param_p;
 context* context_p;
+IOCB* wait_term;
+IOCB* wait_com;
 //dcb* com_port; 
 //dcb* term_port;
 //void interrupt (*old_int) ();
@@ -63,6 +66,7 @@ context* context_p;
 int main(void) {
 	int e_flag;
 	init();
+	init_iocb();
 	com_open((int*) &e_flag, 1200);
 	trm_open((int*) &e_flag);
 	init_R6();
@@ -76,11 +80,65 @@ int main(void) {
 	return 0;
 }
 
-//initalize dcbs and iocbs
-void init_struct(){
+void io_scheduler(){
+	int dev;
+	IOD* new_iod;
+	IOCB* wait_q;
+	dev= param_p->device_id;
 	
+	
+	new_iod= (IOD*) sys_alloc_mem(sizeof(IOD));
+	new_iod->requestor= cop;
+	strcpy(new_iod->name, cop);
+	new_iod->location= param_p->buf_addr; //check if this is we set addresses
+	new_iod->counter= param_p->count_addr; //same here
+	new_iod->type=param_p->op_code;
+	
+	if(dev== TERMINAL)
+		wait_q= wait_term;
+	if(dev== COM_PORT)
+		wait_q= wait_com;
+	
+	if(wait_q->count==0){
+		wait_q->head = new_iod;
+		wait_q->tail = new_iod;
+		wait_q->count= 1;
+		process_io(new_iod);
+	}else {
+		FIFO_insert_iod(wait_q, new_iod);
+	}//blocke the process
+	(new_iod->requestor)->state= BLOCKED;
+	return;
 }
 
+void process_io(IOD* new_iod){
+	char* request;
+	IOCB* com_iocb;
+	request= new_iod->type;
+	if(request== READ)
+		trm_read(com_iocb->head->location, com_iocb->head->counter);
+	if(request ==WRITE)
+		trm_close(com_iocb->head->location, (com_iocb->head)->counter);
+	if(request ==CLEAR )
+		trm_clear();
+	if(request ==GOTOXY)
+		trm_gotoxy(0, 0);
+}
+
+void init_iocb(){
+	wait_term= (IOCB*) sys_alloc_mem(sizeof(IOCB));
+	wait_term->event_flag= 0;
+	wait_term->count= 0;
+	wait_term->head= (IOD*)sys_alloc_mem(sizeof(IOD));
+	wait_term->tail= (IOD*)sys_alloc_mem(sizeof(IOD));
+	
+	wait_com= (IOCB*) sys_alloc_mem(sizeof(IOCB));
+	wait_com->event_flag= 0;
+	wait_com->count= 0;
+	wait_com->head= (IOD*)sys_alloc_mem(sizeof(IOD));
+	wait_com->tail= (IOD*)sys_alloc_mem(sizeof(IOD));
+}
+	
 
 void init_R6() {
 
@@ -159,6 +217,8 @@ void init() {
 	blockQ = initQueue(blockQ, "Blocked\0");
 	suspendreadyQ = initQueue(suspendreadyQ, "Suspended Ready\0");
 	suspendblockQ = initQueue(suspendblockQ, "Suspended Blocked\0");
+	waiting_iod1= intiQueue(waiting_iod1, "Waiting IOD1\0");
+	waiting_iod2= intiQueue(waiting_iod2, "Waiting IOD2\0");
 	error = sys_set_vec(sys_call); 
   
   if (error != 0) {
@@ -609,6 +669,34 @@ void priority_insert(queue* q, pcb *ptr){
            }
     }    
   }
+}
+
+/***************************
+ *Name: FIFO_insert
+ *Parameters: queue*, iod*
+ *Calls:      none
+ *Returns:    void
+ *Desc:       The functions simply inserts the iod at the end of the queue 
+ */
+
+void FIFO_insert_iod(IOCB* q, iod* ptr){
+      if (q->head == NULL) {                              //No PCBs in queue
+          //printf("Queue head in Fifo check.\n\n");
+          ptr->next   = NULL;
+              
+          q->head     = ptr;
+          q->tail     = ptr;
+      } else if ((q->head)->next == NULL) {               //first pcb in queue
+          //printf("Queue head is 1 in Fifo check.\n\n");
+          ptr->next        = NULL;
+      
+          (q->head)->next  = ptr;
+          q->tail          = ptr;
+      }else {                                             //more than 1 pcb
+          //printf("Queue head many in Fifo check.\n\n");
+          (q->tail)->next = ptr;
+          q->tail         = ptr;
+    }
 }
 
 /***************************
@@ -1661,6 +1749,8 @@ void interrupt sys_call() {
     _SS = ssnew;
     _SP = spnew;
     
+
+    
     param_p = (params*)(cop->stack_top + sizeof(context));
 
     if (param_p->op_code == IDLE) {
@@ -1670,11 +1760,11 @@ void interrupt sys_call() {
     } else if (param_p->op_code == EXIT) {
     		Free_PCB(cop); //not sure this is really the function to call but seems so
     		result = -1;
-    } 
-    
-    
+    } else if ((param_p->op_code == READ)||)
+       
     //context_p->AX= result; //resetting the AX to the value returned, used later by sys_req no idea what for=    
     dispatcher();
+    
 }       
 
 
