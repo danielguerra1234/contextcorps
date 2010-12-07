@@ -1,13 +1,14 @@
 /*
  ============================================================================
- Name        : GeckOS2.c
- Author      : 
+ Name        : R6.c
+ Author      : Jeremy Keczan
  Version     :
  Copyright   : Your copyright notice
- Description : Hello World in C, Turbo C-style
+ Description : R6, Turbo C-style
  ============================================================================
  */
             
+#include "R5/r5.h"            
 #include "GeckOS2.h"
 
 
@@ -61,15 +62,41 @@ context* context_p;
 
 int main(void) {
   pcb* fake;
-	int inputLength = 100;
+	init();
+	init_R6();
+	COMHAN();
+	
+}
+
+void init_R6() {
+
+  pcb* comhan;
+  context* comhan_con;
+
+  // Set up COMHAN PROCESS
+	comhan = Setup_PCB("COMHAN\0", 1, 1);
+	comhan_con = (context *) comhan->stack_top;
+	
+	comhan_con->DS = _DS;
+	comhan_con->ES = _ES;
+	comhan_con->CS = FP_SEG(&COMHAN);
+	comhan_con->IP = FP_OFF(&COMHAN);
+	comhan_con->FLAGS = 0x200;
+	
+	Insert_PCB(comhan);
+	
+	Load_Program("IDLE", "IDLE", 123, "\0");
+}
+
+int COMHAN() {
+
+  int inputLength = 100;
 	int *lengthPtr = &inputLength;
 	char input[100];
 	int exitCode = 0;
 	int loopbreaker = 0;
-	init();
-	//fake->process_name = "Fake";
-	//readyQ->head = fake;
-	do { 
+	
+    do { 
   
     if (loopbreaker >= 200) {
         printf("Infinite Loop Error. Aborting.\n");
@@ -105,7 +132,7 @@ int main(void) {
 	
 	return 0;
 }
-
+                                                                       
 void init() {
   int error;
   char greeting[20] = "Welcome to GeckOS!\0";
@@ -200,6 +227,45 @@ void Free_PCB(pcb *ptr) {
   }
 }
 
+
+
+pcb* Setup_PCB(char name[], int priorityc, int classc) {
+	pcb* pcb1;
+	int class = classc;
+	
+	//printf("SetupPCB: Name: %s, Prior: %d, Class: %d\n\n", name, priorityc, classc);
+	
+	if (name == NULL) {
+		errorCodeTranslator(ERR_PCB_NONAME);
+		return;
+	}
+	if (strlen(name) > 15) {
+		errorCodeTranslator(ERR_SUP_NAMLNG);
+		return;
+	}
+	/*if (Find_PCB(name) != NULL) {
+		errorCodeTranslator(ERR_PCB_NMEEXISTS);
+		return;
+	}*/  
+	if(priorityc > 127 || priorityc < (-128)) {
+		errorCodeTranslator(ERR_PCB_INVPRIORITY);
+		return;
+	}
+	if (class!= 1 && class!= 2) {
+		errorCodeTranslator(ERR_PCB_INVCLASS);
+		return;
+	}
+	
+	pcb1 = allocatePcb();
+	strcpy(pcb1->process_name, name);
+	pcb1->priority = priorityc;
+	pcb1->process_class = classc;
+	pcb1->state = READY;
+	pcb1->next = NULL;
+	pcb1->prev = NULL;
+	return pcb1;
+}
+
 /*********************************************
  *Function: Load Program
  *Calls:    sys_alloc_mem
@@ -252,10 +318,12 @@ pcb* Load_Program(char name[], char prog_name[], int priorityc, char dir_name[])
 	strcpy(pcb1->process_name, name);
 
 	pcb1->priority = priorityc;
-	pcb1->process_class = APPLICATION;
+	if (strcmp(name, "IDLE") == 0 ) {
+      pcb1->process_class = SYSTEM;
+  } else {
+	   pcb1->process_class = APPLICATION;
+	}
 	pcb1->state = SUSPENDED_READY;
-
-  
 
   //sys_alloc_mem inits the memory for the program
 	load_address = (unsigned char*) sys_alloc_mem(prog_len_p);
@@ -268,11 +336,8 @@ pcb* Load_Program(char name[], char prog_name[], int priorityc, char dir_name[])
       return NULL;
   }
 	
-	
-	//sets the pcbs exec_addr by calculing stack offset  ERROR IS HERE!!!!
 	pcb1->load = load_address;
 	pcb1->execution = pcb1->load + start_offset_p;
-	//pcb1->execution = start_offset_p;
 	pcb1->memory = prog_len_p;
 	
 	  
@@ -284,11 +349,8 @@ pcb* Load_Program(char name[], char prog_name[], int priorityc, char dir_name[])
   	con->DS = _DS;
   	con->ES = _ES;
   	
-  	//call load program passing in calculated values from earlier
-    
-  // if (error != 0) {
 	  Insert_PCB(pcb1); // should go to the suspended ready queue
-	 //}
+
 	return pcb1;
 }
 
@@ -1041,7 +1103,7 @@ int parseCommand(char *commandString) {
 		return 0;
 	}
 	if (strcmp(command,dispatch_c) == 0) {
-		dispatcher();
+		printf("The dispatch function has been deprecated for GeckOS v6. \n");
 		return 0;
 	} 
 	if (strcmp(command,load_c) == 0) {
@@ -1074,7 +1136,7 @@ int parseCommand(char *commandString) {
         return 0;
      }
      
-     if (command_check(arg2) == 0) {
+     if (command_check(arg2) != 1) {
         return 0;
      }
      
@@ -1226,30 +1288,24 @@ int parseCommand(char *commandString) {
 	
 	if (strcmp(command, pcb_c) == 0) {
 		if (arg1 == NULL) {
-			puts("You must define whether you are creating(-c) or deleting(-d) a pcb");
+			printf("This function has been deprecated for GeckOS v6. \n");
 			return 0;
 		}
 		if (strcmp(arg1,"-c") == 0) {
 			if(arg2 == NULL || arg3 == NULL || arg4 == NULL) {
-				printf("Creating a pcb requires 3 arguments:  name, class, priority\n");
+				printf("Unblocking has been deprecated for GeckOS v6. \n");;
 				return 0;
 			} else {
-				//add function call once functions are ready
-				//printf("Creating a pcb\nName: %s\nClass: %s\nPriority: %d\n",arg2,atoi(arg3),arg4);
-				//Setup_PCB(arg2,atoi(arg3),atoi(arg4));
-				//printf("parse command check: %s\n",readyQ->head->process_name);
-				printf("PCB create is disabled in R4, use load.\n");
+				printf("PCB create has been deprecated for GeckOS v6. \n");
 				return 0;
 			}
 		}
 		if (strcmp(arg1, "-d") == 0) {
 		  if (arg2 == NULL) {
-			puts("Deleting a pcb requires a pcb name.\n");
+			printf("Unblocking has been deprecated for GeckOS v6. \n");
 			return 0;
 			} else {
-				printf("Deleting pcb '%s'\n",arg2);
-				Remove_PCB(Find_PCB(arg2));
-				Free_PCB(arg2);
+				printf("PCB delete has been deprecated for GeckOS v6. \n");
 				
 				return 0;
 			}
@@ -1273,8 +1329,7 @@ int parseCommand(char *commandString) {
     }
     else {
       //add function call when function is ready
-      printf("blocking %s\n\n\0",arg1);
-      block(arg1);
+      printf("Blocking has been deprecated for GeckOS v6. \n");
       return 0;
     }
   }
@@ -1286,8 +1341,7 @@ int parseCommand(char *commandString) {
     }
     else {
       //add function call when function is ready
-      printf("Unblocking %s\n",arg1);
-      unblock(arg1);
+      printf("Unblocking has been deprecated for GeckOS v6. \n");
       return 0;
     }
   }
@@ -1605,88 +1659,7 @@ void interrupt sys_call() {
     //context_p->AX= result; //resetting the AX to the value returned, used later by sys_req no idea what for=    
     dispatcher();
 }       
-/*
-void testn_R3(){
-  
-	pcb* test1;
-	pcb* test2;
-	pcb* test3;
-	pcb* test4;
-	pcb* test5;
-	
-	//Context for each function
-	context* test1con;
-	context* test2con;
-	context* test3con;
-	context* test4con;
-	context* test5con;
-	
-	//Test 1 function
-	test1 = Setup_PCB("test1\0", 1, 1);
-	//printf("\n\nTest1 name: %s, p: %d, c:d\n\n", test1->process_name,test1->priority,test1->process_class);
-	test1con = (context *) test1->stack_top;
-	
-	test1con->DS = _DS;
-	test1con->ES = _ES;
-	test1con->CS = FP_SEG(&test1_R3);
-	test1con->IP = FP_OFF(&test1_R3);
-	test1con->FLAGS = 0x200;
-	
-	Insert_PCB(test1); 
-//show_ready();
-	//Test 2 function  
-	
-	test2 = Setup_PCB("test2\0", 2, 1);
-	test2con = (context *) test2->stack_top;
-	
-	test2con->DS = _DS;
-	test2con->ES = _ES;
-	test2con->CS = FP_SEG(&test2_R3);
-	test2con->IP = FP_OFF(&test2_R3);
-	test2con->FLAGS = 0x200;
-	
-	Insert_PCB(test2);   
-	
-	//Test 3 function  
-	test3 = Setup_PCB("test3\0", 3, 1);
-	test3con = (context *) test3->stack_top;
-	
-	test3con->DS = _DS;
-	test3con->ES = _ES;
-	test3con->CS = FP_SEG(&test3_R3);
-	test3con->IP = FP_OFF(&test3_R3);
-	test3con->FLAGS = 0x200;
-	
-	Insert_PCB(test3); 
-  
-  //Test 4 function  
-	test4 = Setup_PCB("test4\0", 4, 1);
-	test4con = (context *) test4->stack_top;
-	
-	test4con->DS = _DS;
-	test4con->ES = _ES;
-	test4con->CS = FP_SEG(&test4_R3);
-	test4con->IP = FP_OFF(&test4_R3);
-	test4con->FLAGS = 0x200;
-	
-	Insert_PCB(test4);     
 
-  //Test 5 function  
-	test5 = Setup_PCB("test5\0", 5, 1);
-	test5con = (context *) test5->stack_top;
-	
-	test5con->DS = _DS;
-	test5con->ES = _ES;
-	test5con->CS = FP_SEG(&test5_R3);
-	test5con->IP = FP_OFF(&test5_R3);
-	test5con->FLAGS = 0x200;
-	
-	Insert_PCB(test5);   
-	
-  dispatcher();
-  
-}
-*/
 
 /***************************
  *Name:       dispatcher (interrupt)
@@ -1789,7 +1762,7 @@ int command_check(char* name) {
      }
      
      if (strcmp(name,pcb_c) == 0) {
-        check = 0;
+        check = 2;
      }
      
      if (strcmp(name,show_c) == 0) {
@@ -1797,7 +1770,7 @@ int command_check(char* name) {
      }
      
      if (strcmp(name,block_c) == 0) {
-        check = 0;
+        check = 2;
      }
      
      if (strcmp(name,setprompt_c) == 0) {
@@ -1817,7 +1790,7 @@ int command_check(char* name) {
      }
      
      if (strcmp(name,unblock_c) == 0) {
-        check = 0;
+        check = 2;
      }
      
      if (strcmp(name,suspend_c) == 0) {
@@ -1835,6 +1808,10 @@ int command_check(char* name) {
         printf("Command: %s is already taken, please chose another.\n",name);
         return check;
      }
+     if (check == 2) {
+        printf("Command may not be aliased since it is deprecated. \n");
+        return check;
+     }
      else {
         printf("\nCommand available.\n\n");
         return check;
@@ -1850,7 +1827,7 @@ int command_check(char* name) {
  */
 
 void ver () {
-	printf("This is the version #6.1.1 of GeckOs\n");
+	printf("This is the version #6.1.5 of GeckOs\n");
 	printf("Module #R6\n");
 	printf("Last Modified: 12/4/2010\n");
 }
@@ -1878,5 +1855,8 @@ void removeNL(char *s) {
 
 void terminate() {
 	printf("Goodbye.\n");
+	
+	
+	
 	sys_exit();
 }
