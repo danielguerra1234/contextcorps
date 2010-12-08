@@ -123,7 +123,6 @@ void unblock(char* name);
 void suspend(char* name);
 void resume(char* name);
 void testn_R3();
-
 void terminate_process(char* name);
 
 void init();
@@ -131,6 +130,9 @@ void init_R6();
 void init_iocb();
 void process_io(IOD*,int);
 void io_scheduler();
+void io_cleanup();
+void q_cleanup(queue* q);
+
 int parseCommand(char *commandString);
 void displayDate();
 void changeDate(char *year, char *month, char *day);
