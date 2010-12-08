@@ -12,8 +12,6 @@
 
 
 //Global Variables:
-DIR *dp;
-struct dirent *ep;
 date_rec *date_p;
 char *prompt = "~> ";
 
@@ -103,7 +101,7 @@ void io_scheduler(){
 		wait_q->head = new_iod;
 		wait_q->tail = new_iod;
 		wait_q->count= 1;
-		process_io(new_iod);
+		process_io(new_iod, dev);
 	}else {
 		FIFO_insert_iod(wait_q, new_iod);
 	}//blocke the process
@@ -111,18 +109,35 @@ void io_scheduler(){
 	return;
 }
 
-void process_io(IOD* new_iod){
-	char* request;
-	IOCB* com_iocb;
-	request= new_iod->type;
-	if(request== READ)
-		trm_read(com_iocb->head->location, com_iocb->head->counter);
-	if(request ==WRITE)
-		trm_close(com_iocb->head->location, (com_iocb->head)->counter);
-	if(request ==CLEAR )
-		trm_clear();
-	if(request ==GOTOXY)
-		trm_gotoxy(0, 0);
+void process_io(IOD* new_iod, int device){
+	int request;
+	request = new_iod->type;
+	
+	switch (request) {
+			case READ:
+				  if(device == TERMINAL)
+					   trm_read(new_iod->location, new_iod->counter );
+				  else if (device == COM_PORT)
+					   com_read(new_iod->location, new_iod->counter);
+			    break;
+			case WRITE:
+				  if(device == TERMINAL)
+					   trm_write(new_iod->location, new_iod->counter);
+				  else if (device == COM_PORT)
+					   com_write(new_iod->location, new_iod->counter);
+				  break;
+			case CLEAR:
+				  if(device == TERMINAL)
+					   trm_clear();
+				  break;
+			case GOTOXY:
+				  if(device == TERMINAL)
+					   trm_gotoxy(0,0);
+				  break;
+			default:
+				  break;
+		}
+		return;
 }
 
 void init_iocb(){
@@ -211,14 +226,11 @@ void init() {
   char greeting[20] = "Welcome to GeckOS!\0";
 	clearScreen();
 	puts(greeting);
-	dp = opendir ("./");
 	sys_init(MODULE_R4);
 	readyQ = initQueue(readyQ, "Ready\0");
 	blockQ = initQueue(blockQ, "Blocked\0");
 	suspendreadyQ = initQueue(suspendreadyQ, "Suspended Ready\0");
 	suspendblockQ = initQueue(suspendblockQ, "Suspended Blocked\0");
-	waiting_iod1= intiQueue(waiting_iod1, "Waiting IOD1\0");
-	waiting_iod2= intiQueue(waiting_iod2, "Waiting IOD2\0");
 	error = sys_set_vec(sys_call); 
   
   if (error != 0) {
@@ -679,23 +691,19 @@ void priority_insert(queue* q, pcb *ptr){
  *Desc:       The functions simply inserts the iod at the end of the queue 
  */
 
-void FIFO_insert_iod(IOCB* q, iod* ptr){
-      if (q->head == NULL) {                              //No PCBs in queue
+void FIFO_insert_iod(IOCB* q, IOD* ptr){
+      IOD* current;
+      if (q->head == NULL) {                              //No IODs in queue
           //printf("Queue head in Fifo check.\n\n");
-          ptr->next   = NULL;
-              
+          ptr->next   = NULL;              
           q->head     = ptr;
           q->tail     = ptr;
-      } else if ((q->head)->next == NULL) {               //first pcb in queue
-          //printf("Queue head is 1 in Fifo check.\n\n");
-          ptr->next        = NULL;
-      
-          (q->head)->next  = ptr;
-          q->tail          = ptr;
-      }else {                                             //more than 1 pcb
-          //printf("Queue head many in Fifo check.\n\n");
-          (q->tail)->next = ptr;
-          q->tail         = ptr;
+          q->count = q->count+1;
+      } else {
+          current = q->tail;
+          current->next = ptr;
+          q->tail = ptr;
+          q->count = q->count + 1;      
     }
 }
 
@@ -896,7 +904,12 @@ void Show_PCB(char* name) {
     }
     
     if (pcbPtr2->process_class == APPLICATION) {
-       temp2 = "APPLICATION"; 
+        temp2 = "APPLICATION"; 
+    } else if (pcbPtr2->process_class == SYSTEM) {
+        temp2 = "SYSTEM";    
+    } else {
+        printf("Something bad has happened. Advise quiting application with (exit). \n\n");
+        return;
     }
 
     printf("Name: %s\n" 
@@ -1012,6 +1025,33 @@ void show_blocked(){
 	return;
 }
 
+void show_suspended_blocked(){
+	 pcb* walk;
+	 int check;
+	 int i = 1;
+   	 walk = suspendblockQ->head; 
+	 
+	 if (walk == NULL) {
+    printf("Queue not available or is empty.\n");
+    return;
+    } 
+    printf("Suspended Blocked Queue:\n\n");
+	 while(walk != NULL) {
+	     check = check + 1;
+	  //printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
+	     if (check == 30) {
+	        printf("Check Break.\n");
+          break;
+        }
+    
+        printf("\t%d:\t%s\n",i++,walk->process_name); 
+      
+	walk = walk->next;
+		 }
+	i = 0;
+	return;
+}
+
 /***************************
  *Name: show_all
  *Parameters: none
@@ -1027,6 +1067,8 @@ void show_all(){
    printf("All PCB's:\n\n");
    show_ready();
    show_blocked();
+   show_suspended_ready();
+   show_suspended_blocked();
    
 	return;
 }
@@ -1330,11 +1372,6 @@ int parseCommand(char *commandString) {
      else 
       return 0;
   }
-	if (strcmp(command,"cd") == 0) {
-		if (arg1 == NULL) printf("cd requires a path\n");
-		else changeDir(arg1);
-		return 0;
-	}
 	if (strcmp(command, setprompt_c) == 0) {
 		if (arg1 == NULL) puts("Prompt argument cannot be blank");
 		else if (strlen(arg1) > 20) puts("Prompt argument must be 20 characters or less");
@@ -1529,7 +1566,7 @@ int parseCommand(char *commandString) {
       }
       else {
         //add function call
-        printf("calling show with -a argument\n");
+        //printf("calling show with -a argument\n");
         show_all();
         return 0;
       } 
@@ -1540,7 +1577,7 @@ int parseCommand(char *commandString) {
         return 0;
       }
       else {
-        printf("calling show command with -r argument\n");
+        //printf("calling show command with -r argument\n");
         show_ready();
         return 0;
       }
@@ -1551,7 +1588,7 @@ int parseCommand(char *commandString) {
         return 0;
       }
       else {
-        printf("calling show command with -b argument\n");
+        //printf("calling show command with -b argument\n");
         show_blocked();
         return 0;
       }
@@ -1562,8 +1599,19 @@ int parseCommand(char *commandString) {
         return 0;
       }
       else {
-        printf("calling show command with -sr argument\n");
+        //printf("calling show command with -sr argument\n");
         show_suspended_ready();
+        return 0;
+      }
+    }
+     if (strcmp(arg1, "-sb") == 0) {
+      if (arg2 != NULL || arg3 != NULL || arg4 != NULL) {
+        printf("show command argument -sr takes no arguments\n");
+        return 0;
+      }
+      else {
+        //printf("calling show command with -sr argument\n");
+        show_suspended_blocked();
         return 0;
       }
     }
@@ -1581,36 +1629,38 @@ int parseCommand(char *commandString) {
 	return 0;
 }         
 
-void listDir() {
-       char *command;
-       char *extension;
-       if (dp != NULL) {
-	     while (ep == readdir(dp)) {
-        	   
-		   command = strtok(ep->d_name, ".");
-		   extension = strtok(NULL, ".");
-		   puts(extension);
-		   if (strcmp(extension, "mpx") == 0) {
-			puts(ep->d_name);
-		   }
-		   (void) closedir (dp);  }
-       }else
-	   perror("Couldn't open the directory");
-
-     return;
-}
-
-/***************************
- *Name:       changeDir
- *Parameters: DIR
- *Calls:      opendir  
- *Returns:    void
- *Desc:       changes directory to which is passed in.   
- */
-
-void changeDir(DIR *arg) {
-      dp = opendir(arg);
-      if (dp == NULL) printf("Could not open %s", arg);
+void listDir(char dir_name[]) {
+       
+      int dir;
+      long* filesize = 0;
+      char name_buf[50] = {0};
+      
+      if (strlen(dir_name) > 50) {
+              errorCodeTranslator(ERR_SUP_NAMLNG);
+              return;
+      }
+      
+      dir = sys_open_dir("\0");
+      
+      
+      if (dir != 0) {
+          errorCodeTranslator(dir);
+          sys_close_dir();
+          return;
+      } else {
+          printf("Name \t\t Size\n\n");
+          while (sys_get_entry(name_buf,50,filesize) == 0) {
+              
+              if (strlen(name_buf) < 7) {
+                  printf("%s \t\t %d \n", name_buf, *filesize );
+              } else {
+              printf("%s \t %d \n", name_buf, *filesize );
+              }
+  
+          }
+      }
+      sys_close_dir();
+      return;
 }
 
 /***************************
@@ -1709,9 +1759,18 @@ void changeDate(char *yearc, char *monthc, char *dayc) {
 	}
 	//TODO: get leap years right
 	if (month == 2) {
-		if (year%4 == 0 && day > 30) errorCodeTranslator(ERR_SUP_INVDAT);
-		else if(month == 2 && day>29) errorCodeTranslator(ERR_SUP_INVDAT);
-		return;
+		if (year%4 == 0 && day > 30) {
+        errorCodeTranslator(ERR_SUP_INVDAT); 
+        return;
+        }
+		else if(month == 2 && day>29) {
+        errorCodeTranslator(ERR_SUP_INVDAT);
+        return;
+        }
+		else if (year%100 != 0 || year%400 != 0) { 
+        errorCodeTranslator(ERR_SUP_INVDAT);
+        return;
+        }
 	}
 	if (save_date->year == date_p->year && save_date->month == date_p->month && save_date->day == date_p->day) {
 		errorCodeTranslator(ERR_SUP_DATNCH);
@@ -1749,7 +1808,7 @@ void interrupt sys_call() {
     _SS = ssnew;
     _SP = spnew;
     
-
+    trm_getc();    //flush keyboard from dos to mpx
     
     param_p = (params*)(cop->stack_top + sizeof(context));
 
@@ -1760,7 +1819,7 @@ void interrupt sys_call() {
     } else if (param_p->op_code == EXIT) {
     		Free_PCB(cop); //not sure this is really the function to call but seems so
     		result = -1;
-    } else if ((param_p->op_code == READ)||)
+    } 
        
     //context_p->AX= result; //resetting the AX to the value returned, used later by sys_req no idea what for=    
     dispatcher();

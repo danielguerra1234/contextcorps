@@ -112,6 +112,7 @@ pcb* Remove_PCB(pcb*);
 void Set_Priority(char*, int);
 queue* initQueue(queue*, char*);
 int COMHAN();
+void FIFO_insert_iod(IOCB* q, IOD* ptr);
 //Show Functions
 void Show_PCB(char*);
 void Show_All();
@@ -128,7 +129,7 @@ void terminate_process(char* name);
 void init();
 void init_R6();
 void init_iocb();
-void process_io(IOD* new_iod);
+void process_io(IOD*,int);
 void io_scheduler();
 int parseCommand(char *commandString);
 void displayDate();

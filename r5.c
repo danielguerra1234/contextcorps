@@ -13,11 +13,6 @@
 dcb* dcb1;
 void interrupt (*old_int) ();
 
-void main()
-{
-    printf("");
-}
-
 int com_open(int *eflag_p, int baud_rate) {
 	int baud_rate1;
 	int mk; 
