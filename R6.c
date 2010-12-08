@@ -50,13 +50,23 @@ char* load_c          = "load";
 
 unsigned int sp_save=NULL, ss_save=NULL;
 unsigned int ssnew=NULL, spnew=NULL;
+unsigned int temp_ss = NULL, temp_sp = NULL;
 unsigned char sysStack[2048];
 
 pcb* cop;
 params* param_p;
 context* context_p;
+
 IOCB* wait_term;
 IOCB* wait_com;
+
+
+IOD* temp_iod;
+IOD* temp_head;
+//dcb* com_port; 
+//dcb* term_port;
+//void interrupt (*old_int) ();
+
 
 
 int main(void) {
@@ -244,8 +254,7 @@ int COMHAN() {
 		}
 	} while (exitCode == 0);
 	if (exitCode != 1) errorCodeTranslator(exitCode);
-	terminate();
-	
+	terminate();	
 	return 0;
 }
                                                                        
@@ -963,7 +972,7 @@ void show_ready(){
 	 int i = 1;
    	 walk = readyQ->head; 
 	 
-	 if (walk == NULL) {
+	 if (walk == NULL) { 
     		printf("Queue not available or is empty.\n");
     		return;
     }
@@ -1059,7 +1068,7 @@ void show_suspended_blocked(){
 	 int i = 1;
    	 walk = suspendblockQ->head; 
 	 
-	 if (walk == NULL) {
+	 if (walk == NULL) {   
     printf("Queue not available or is empty.\n");
     return;
     } 
@@ -1827,6 +1836,104 @@ void changeDate(char *yearc, char *monthc, char *dayc) {
  
 void interrupt sys_call() {
     static int result;
+    temp_ss = _SS;
+    temp_sp = _SP;
+    
+    
+    ssnew = FP_SEG(&sysStack);
+    spnew = FP_OFF(&sysStack);
+    spnew += 2048;
+    _SS = ssnew;
+    _SP = spnew;
+    
+    trm_getc();    //flush keyboard from dos to mpx   //new for R6
+    
+    
+
+    if (wait_term->event_flag == 1) {
+         wait_term->event_flag = 0;
+         
+         temp_iod = wait_term->head;
+         wait_term->head = temp_iod->next;
+         
+        if (wait_term->head != NULL) {
+      			switch (temp_iod->type) {
+      				case READ:
+      					 trm_read(temp_iod->location, temp_iod->counter);
+      					 break;
+      				case WRITE:
+      					 trm_write(temp_iod->location, temp_iod->counter);
+      					 break;
+      				case CLEAR:
+      					 trm_clear();
+      					 break;
+      				case GOTOXY:
+      					 trm_gotoxy(0,0);
+      					 break;
+      				default:
+      					 break;
+      			}
+      			unblock(temp_iod->requestor);
+		        sys_free_mem(temp_iod);
+            wait_term->count--;
+		  }
+		}
+		
+		if (wait_com->event_flag == 1) {
+         wait_com->event_flag = 0;
+         
+         temp_iod = wait_com->head;
+         wait_com->head = temp_iod->next;
+         
+        if (wait_com->head != NULL) {
+      			switch (temp_iod->type) {
+      				case READ:
+      					 trm_read(temp_iod->location, temp_iod->counter);
+      					 break;
+      				case WRITE:
+      					 trm_write(temp_iod->location, temp_iod->counter);
+      					 break;
+      				default:
+      					 break;
+      			}
+      			unblock(temp_iod->requestor);
+		        sys_free_mem(temp_iod);
+            wait_com->count--;
+		    }
+		}
+    cop-> stack_top = (unsigned char *)MK_FP(_SS, _SP);
+    param_p = (params*)(cop->stack_top + sizeof(context));
+    
+    switch(param_p->op_code) {
+        case IDLE:
+            cop->state = READY;
+            Insert_PCB(cop);
+            break;
+        case EXIT:
+            Free_PCB(cop);
+            result = -1;
+            break;
+        case READ:
+            io_scheduler();
+            break;
+        case WRITE:
+            io_scheduler();
+        case GOTOXY:
+            io_scheduler();
+        case CLEAR:
+            io_scheduler();
+        default:
+            break;
+    }
+    
+    temp_ss = NULL;
+    temp_sp = NULL;   
+    dispatcher();
+    
+}       
+/*
+void interrupt sys_call() {
+    static int result;
     cop-> stack_top = (unsigned char *)MK_FP(_SS, _SP);
     
     
@@ -1836,7 +1943,7 @@ void interrupt sys_call() {
     _SS = ssnew;
     _SP = spnew;
     
-    trm_getc();    //flush keyboard from dos to mpx
+    //trm_getc();    //flush keyboard from dos to mpx   //new for R6
     
     param_p = (params*)(cop->stack_top + sizeof(context));
 
@@ -1852,9 +1959,8 @@ void interrupt sys_call() {
     //context_p->AX= result; //resetting the AX to the value returned, used later by sys_req no idea what for=    
     dispatcher();
     
-}       
-
-
+}
+ */
 /***************************
  *Name:       dispatcher (interrupt)
  *Parameters: pcb_name
