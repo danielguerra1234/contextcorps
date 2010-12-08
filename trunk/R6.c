@@ -57,9 +57,7 @@ params* param_p;
 context* context_p;
 IOCB* wait_term;
 IOCB* wait_com;
-//dcb* com_port; 
-//dcb* term_port;
-//void interrupt (*old_int) ();
+
 
 int main(void) {
 	int e_flag;
@@ -71,7 +69,11 @@ int main(void) {
 	dispatcher();
 	com_close();
 	trm_close();
-	//cleanup queues, 
+	io_cleanup();
+	q_cleanup(readyQ) ;
+	q_cleanup(blockQ);
+	q_cleanup(suspendreadyQ);
+	q_cleanup(suspendblockQ);
 	//cleanup pcbs
 	//cleanup iods and iocbs
 	sys_exit();
@@ -106,6 +108,7 @@ void io_scheduler(){
 		FIFO_insert_iod(wait_q, new_iod);
 	}//blocke the process
 	(new_iod->requestor)->state= BLOCKED;
+	
 	return;
 }
 
@@ -174,6 +177,31 @@ void init_R6() {
 	
 	Load_Program("IDLE", "IDLE", 123, "\0");
 	
+}
+
+void io_cleanup(){
+	IOD* temp= wait_com->head;
+	IOD* temp2= wait_term->head;
+	while(temp != NULL){
+		sys_free_mem(temp);
+		temp= temp->next;
+	}
+	while(temp2!= NULL){
+		sys_free_mem(temp2);
+		temp2= temp2->next;
+	}
+	sys_free_mem(wait_com);
+	sys_free_mem(wait_term);
+}
+
+void q_cleanup(queue* q){
+	pcb* temp;
+	temp= q->head;
+	while(temp!= NULL){
+		sys_free_mem(temp);
+		temp= temp->next;
+	}
+	sys_free_mem(q);
 }
 
 int COMHAN() {
@@ -294,7 +322,7 @@ pcb *allocatePcb(){
 /******************************
  *Name: Free_PCB
  *Parameters: pcb
- *Calls:    sys_free_mem
+ *Calls:    3_mem
  *Return:   nothing   
  *Desc:     This function calls sys_free_mem to release the memory for the ptr*
  *          along with the stack base       
