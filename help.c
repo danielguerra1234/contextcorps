@@ -21,14 +21,14 @@ void help(char *command){
 				"cd : changes directory -- Does not require -arguement\n"
 				"exit : closes the system\n"
 				"setprompt : sets the prompt with the given argument\n"
-        "pcb: commands pertaining to the pcb. Enter 'help pcb' to see more info:DEPRECATED\n"
-        "block: blocks the desired pcb: DEPRECATED\n"
-        "unblock: unblocks the desired pcb: DEPRECATED\n"
+        "pcb: commands pertaining to the pcb. Enter 'help pcb' to see more info:***DEPRECATED***\n"
+        "block: blocks the desired pcb: ***DEPRECATED***\n"
+        "unblock: unblocks the desired pcb: ***DEPRECATED***\n"
         "suspend: suspends the desired pcb\n"
         "priority: commands pertaining to pcb priority. Enter 'help priority' to see more info\n"
         "resume: resumes the desire pcb\n"
         "show: commands pertaining to display pcb information. Enter 'help show' for more information\n"
-        "dispatch: start round robin dispatching: DEPRECATED\n");
+        "dispatch: start round robin dispatching: ***DEPRECATED***\n");
 		return;
 	}
 	if (strcmp(command,"help") == 0) {
@@ -64,15 +64,15 @@ void help(char *command){
 		return;
 	}
 	if (strcmp(command,"pcb") == 0) {
-    printf("This command will allow you to create or delete a pcb.  Use '-c name' for creation and '-d name' for deletion where name is the name of the pcb.\n");
+    printf("This command will allow you to create or delete a pcb.  Use '-c name' for creation and '-d name' for deletion where name is the name of the pcb.***DEPRECATED***\n");
     return;
   }
   if (strcmp(command,"block") == 0) {
-    printf("The block command allows the user to block a pcb.  This command accepts a name for an argument.\n");
+    printf("The block command allows the user to block a pcb.  This command accepts a name for an argument.***DEPRECATED***\n");
     return;
   }
   if (strcmp(command,"unblock") == 0) {
-    printf("The unblock command allows the user to unblock a pcb.  This command accepts a name for an argument.\n");
+    printf("The unblock command allows the user to unblock a pcb.  This command accepts a name for an argument.***DEPRECATED***\n");
     return;
   }
   if (strcmp(command, "suspend") == 0) {
