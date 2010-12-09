@@ -11,6 +11,7 @@
 #include <dir.h>
 #include <errno.h>
 #include <alloc.h>
+#include "COMHAN.h"
 
 #include "MPX_SUPT.H"
 #include "Errors.h"
@@ -29,12 +30,16 @@
 #define SUSPENDED_READY 103
 #define SUSPENDED_BLOCKED 104
 
-
 typedef struct{ 
     unsigned int BP, DI, SI, DS, ES; 
     unsigned int DX, CX, BX, AX; 
     unsigned int IP, CS, FLAGS; 
     } context;
+    
+typedef struct {
+    char* buf_name;
+    long size;
+} paging;
 
 typedef struct{
     char process_name[50];
@@ -89,51 +94,9 @@ typedef struct {
     struct IOD* tail;
     } IOCB;
  
-
-
-void interrupt sys_call(void);
-pcb* save_context(pcb*);
-void interrupt dispatcher();
-
-//PCB PROTOTYPES
-pcb *allocatePcb();
-void blocked_add(pcb *node);
-void Free_PCB(pcb *ptr);
-pcb* Setup_PCB(char name[], int priorityc, int classc);
-pcb* Load_Program(char*, char*, int, char*);
-
-pcb* Find_PCB(char *name);
-pcb* Find_PCB_Blocked(char* name);
-pcb* Find_PCB_Ready(char* name);
-pcb* Find_PCB_Suspended_Ready(char* name);
-pcb* Find_PCB_Suspended_Blocked(char* name);
-void Insert_PCB(pcb*);
-pcb* Remove_PCB(pcb*);
-void Set_Priority(char*, int);
-queue* initQueue(queue*, char*);
-int COMHAN();
-void FIFO_insert_iod(IOCB* q, IOD* ptr);
-//Show Functions
-void Show_PCB(char*);
-void Show_All();
-void Show_Ready();
-void Show_Blocked();
-void block(char* name);
-void unblock(char* name);
-void suspend(char* name);
-void resume(char* name);
-void testn_R3();
-void terminate_process(char* name);
-
+// R1 Prototypes
 void init();
-void init_R6();
-void init_iocb();
-void process_io(IOD*,int);
-void io_scheduler();
-void io_cleanup();
-void q_cleanup(queue* q);
 
-int parseCommand(char *commandString);
 void displayDate();
 void changeDate(char *year, char *month, char *day);
 //int errorCodeTranslator(int code);
@@ -144,11 +107,56 @@ void clearScreen();
 void listDir();
 void dmd();
 void changeDir(DIR *arg);
-void setPrompt(char *s);
+
+
+//R2 Prototypes
+pcb *allocatePcb();
+void blocked_add(pcb *node);
+void Free_PCB(pcb *ptr);
+pcb* Setup_PCB(char name[], int priorityc, int classc);
+pcb* Find_PCB(char *name);
+pcb* Find_PCB_Blocked(char* name);
+pcb* Find_PCB_Ready(char* name);
+pcb* Find_PCB_Suspended_Ready(char* name);
+pcb* Find_PCB_Suspended_Blocked(char* name);
+void Insert_PCB(pcb*);
+pcb* Remove_PCB(pcb*);
+void Set_Priority(char*, int);
+queue* initQueue(queue*, char*);
+void Show_PCB(char*);
+void Show_All();
+void Show_Ready();
+void Show_Blocked();
+void block(char* name);
+void unblock(char* name);
 pcb* move_pcb(pcb* ptr);
 void show_all();
 void show_ready();
 void show_blocked();
-int command_check(char*);
+
+// R3 Prototypes
+void suspend(char* name);
+void resume(char* name);
+void interrupt sys_call(void);
+pcb* save_context(pcb*);
+void interrupt dispatcher();
+void testn_R3();
+void terminate_process(char* name);
+
+//R4 Prototypes
+pcb* Load_Program(char*, char*, int, char*);
+
+//R6 Prototypes
+void FIFO_insert_iod(IOCB* q, IOD* ptr);
+void init_R6();
+void init_iocb();
+void process_io(IOD*,int);
+void io_scheduler();
+void io_cleanup();
+void q_cleanup(queue* q);
+
+//Extra Credit
+
+
 
 #endif
