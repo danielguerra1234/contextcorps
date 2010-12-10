@@ -97,6 +97,8 @@ void io_scheduler(){
 	IOD* new_iod;
 	IOCB* wait_q;
 	pcb* new_pcb;
+	
+	//get device
 	dev= param_p->device_id;
 	
 	
@@ -229,8 +231,6 @@ void init_R6() {
 	
 	Load_Program("IDLE", "IDLE", 123, "\0");
 	resume("IDLE");
-	
-	show_all();
 	
 }
 
@@ -477,6 +477,7 @@ pcb* Load_Program(char name[], char prog_name[], int priorityc, char dir_name[])
 	pcb1->priority = priorityc;
 	if (strcmp(name, "IDLE") == 0 ) {
       pcb1->process_class = SYSTEM;
+      //printf("%d\n", pcb1->process_class);
   } else {
 	   pcb1->process_class = APPLICATION;
 	}
@@ -1596,11 +1597,12 @@ void interrupt dispatcher(){
  	  ss_save = _SS;
 		sp_save = _SP;
 	}
+	cop = Remove_PCB(readyQ->head);
+	while (cop->state == SUSPENDED_READY && cop != NULL)  {
+	   cop = cop->next;
+	}
 	
-	head = readyQ->head;
-	cop = Remove_PCB(head);
-	
-			if (cop != NULL) { //remove the element located at the head of the queue
+			if (cop->state == SUSPENDED_READY || cop != NULL) { //remove the element located at the head of the queue
     			cop->state  = RUNNING;
     			temp_ss = FP_SEG(cop->stack_top);
           temp_sp = FP_OFF(cop->stack_top);	 
