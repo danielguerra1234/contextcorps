@@ -48,10 +48,10 @@ char* load_c          = "load";
  */ 
 
 int com_han() {
-
-  int inputLength = 100;
+  int error;
+  int inputLength = 80;
 	int lengthPtr;
-	char input[100];
+	char input[80];
 	int exitCode = 0;
 	int loopbreaker = 0;
 	
@@ -71,7 +71,13 @@ int com_han() {
     else {
         printf("%s ", prompt);
 		    //fgets(input,*lengthPtr,stdin);
-		    sys_req(READ, TERMINAL, input, &lengthPtr);
+		    error = sys_req(READ, TERMINAL, input, &inputLength);
+		    
+		    printf("error: %d", error);
+		    if (error < 0) {
+		        errorCodeTranslator(error);
+		        return;
+		    }
 		    removeNL(input);
 		    //strcpy(commands[id_com], input);
 		    commands[id_com] = strdup(input);

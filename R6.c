@@ -65,8 +65,8 @@ int main(void) {
 	int e_flag;
 	init();
 	init_iocb();
-	com_open((int*) &e_flag, 1200);
-	trm_open((int*) &e_flag);
+	com_open(&wait_com->event_flag, 1200);   //
+	trm_open(&wait_term->event_flag);         //
 	init_R6();
 	dispatcher();
 	com_close();
@@ -96,15 +96,17 @@ void io_scheduler(){
 	int dev;
 	IOD* new_iod;
 	IOCB* wait_q;
+	pcb* new_pcb;
 	dev= param_p->device_id;
 	
 	
 	new_iod= (IOD*) sys_alloc_mem(sizeof(IOD));
-	new_iod->requestor= cop;
-	strcpy(new_iod->name, cop);
+	new_iod->requestor = cop;
+	strcpy(new_iod->name, cop->process_name);
 	new_iod->location= param_p->buf_addr; //check if this is we set addresses
 	new_iod->counter= param_p->count_addr; //same here
 	new_iod->type=param_p->op_code;
+	new_pcb = new_iod->requestor;
 	
 	if(dev == TERMINAL)
 		wait_q= wait_term;
@@ -119,7 +121,9 @@ void io_scheduler(){
 	}else {
 		FIFO_insert_iod(wait_q, new_iod);
 	}//block the process
-	(new_iod->requestor)->state= BLOCKED;	
+	new_pcb->state= BLOCKED;	 
+	Insert_PCB(new_pcb);
+	//show_blocked();
 	return;
 }
 
@@ -178,6 +182,7 @@ void process_io(IOD* new_iod, int device){
  */ 
 
 void init_iocb(){
+
 	wait_term= (IOCB*) sys_alloc_mem(sizeof(IOCB));
 	wait_term->event_flag= 0;
 	wait_term->count= 0;
@@ -223,6 +228,9 @@ void init_R6() {
 	Insert_PCB(comhan);
 	
 	Load_Program("IDLE", "IDLE", 123, "\0");
+	resume("IDLE");
+	
+	show_all();
 	
 }
 
@@ -1234,7 +1242,7 @@ void suspend(char* pcb_name){
 void resume(char* pcb_name){
 	pcb* ptr;
 	ptr = Find_PCB(pcb_name);
-	printf("ptr: %s\n", ptr->process_name);
+	//printf("ptr: %s\n", ptr->process_name);
 	if(ptr != NULL) {
 		if (ptr->state == SUSPENDED_READY) {
 			ptr = Remove_PCB(ptr);
@@ -1451,13 +1459,10 @@ void interrupt sys_call() {
     _SS = ssnew;
     _SP = spnew;
     
-    trm_getc();    //flush keyboard from dos to mpx   //new for R6
-    
-    
+    trm_getc();    //flush keyboard from dos to mpx   //new for R6   
 
     if (wait_term->event_flag == 1) {
-         wait_term->event_flag = 0;
-         
+         wait_term->event_flag = 0;         
          temp_iod = wait_term->head;
          wait_term->head = temp_iod->next;
          
@@ -1478,10 +1483,11 @@ void interrupt sys_call() {
       				default:
       					 break;
       			}
+        } 
       			unblock(temp_iod->requestor);
 		        sys_free_mem(temp_iod);
             wait_term->count--;
-		  }
+		  
 		}
 		
 		if (wait_com->event_flag == 1) {
@@ -1506,7 +1512,7 @@ void interrupt sys_call() {
             wait_com->count--;
 		    }
 		}
-    cop-> stack_top = (unsigned char *)MK_FP(_SS, _SP);
+    cop-> stack_top = (unsigned char *)MK_FP(temp_ss, temp_sp);
     param_p = (params*)(cop->stack_top + sizeof(context));
     
     switch(param_p->op_code) {
