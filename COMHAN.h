@@ -7,7 +7,7 @@
 #include "GeckOS2.h"
 #include <sys/types.h>
 
-int parseCommand(char *commandString);
+int parseCommand(char*);
 int com_han();
 int command_check(char*);
 void setPrompt(char *s);

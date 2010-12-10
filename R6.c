@@ -725,7 +725,7 @@ void priority_insert(queue* q, pcb *ptr){
     if (priority <= walk->priority) {
      // printf("p < w\n");
       
-        if (walk->prev == NULL && c == 0){  ////insert at head, move head to next
+        if (walk->prev == NULL){  ////insert at head, move head to next
               //printf("Walk == NULL test.\n");
 	           prev       = ptr;
 	           ptr->next        = walk;
@@ -733,11 +733,11 @@ void priority_insert(queue* q, pcb *ptr){
              q->head          = ptr;
              return; 
         } else {      
-      	    ptr->next = walk;
-            ptr->prev = prev;
+      	    ptr->next = NULL;
+            ptr->prev = walk;
       
       	    prev->next = ptr;
-      	    walk->prev = ptr;
+      	    walk->prev = NULL;
             return;
         }  
     } else if (priority > walk->priority) {    //check priority is greater than walk
@@ -1045,7 +1045,7 @@ void show_suspended_ready(){
     		printf("Queue not available or is empty.\n");
     		return;
     }
-   printf("Ready Queue:\n\n"); 
+   printf("Suspended Ready Queue:\n\n"); 
 	 while(walk != NULL) {
 	     check = check + 1;
 	  //printf("Find_PCB Function executing with name: %s, %s\n",name, walk->process_name); 
@@ -1165,7 +1165,7 @@ void block(char* pcb_name){
 		ptr->state= BLOCKED;
     //printf("after state change: %s\n\n\0",ptr->process_name);  //change state to blocked
 		Insert_PCB(ptr);      //Insert into new queue
-		printf("PCB is now blocked.\n\n\0");
+	//	printf("PCB is now blocked.\n\n\0");
 	}
 	return;
 }
@@ -1191,7 +1191,7 @@ void unblock(char* pcb_name){
 		Remove_PCB(ptr);
 		ptr->state= 101;
 		Insert_PCB(ptr);
-		printf("PCB is now unblocked.\n\n\0");
+		//printf("PCB is now unblocked.\n\n\0");
 	}
 	return;
 }
@@ -1484,11 +1484,10 @@ void interrupt sys_call() {
       				default:
       					 break;
       			}
-        } 
+      }
       			unblock(temp_iod->requestor);
+            wait_term->count--;      			
 		        sys_free_mem(temp_iod);
-            wait_term->count--;
-		  
 		}
 		
 		if (wait_com->event_flag == 1) {
@@ -1508,10 +1507,11 @@ void interrupt sys_call() {
       				default:
       					 break;
       			}
-      			unblock(temp_iod->requestor);
-		        sys_free_mem(temp_iod);
-            wait_com->count--;
-		    }
+      	}
+  			unblock(temp_iod->requestor);
+        sys_free_mem(temp_iod);
+        wait_com->count--;
+		    
 		}
     cop-> stack_top = (unsigned char *)MK_FP(temp_ss, temp_sp);
     param_p = (params*)(cop->stack_top + sizeof(context));
@@ -1530,10 +1530,13 @@ void interrupt sys_call() {
             break;
         case WRITE:
             io_scheduler();
+            break;
         case GOTOXY:
             io_scheduler();
+            break;
         case CLEAR:
             io_scheduler();
+            break;
         default:
             break;
     }

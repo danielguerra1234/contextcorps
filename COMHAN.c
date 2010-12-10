@@ -49,11 +49,11 @@ char* load_c          = "load";
 
 int com_han() {
   int error;
-  int inputLength = 80;
+  int inputLength = strlen(prompt);
 	int lengthPtr;
 	char input[80];
 	int exitCode = 0;
-	int loopbreaker = 0;
+	int loopbreaker = 0; 
 	
     do { 
   
@@ -69,16 +69,15 @@ int com_han() {
     }
        
     else {
-        printf("%s ", prompt);
-		    //fgets(input,*lengthPtr,stdin);
-		    error = sys_req(READ, TERMINAL, input, &inputLength);
-		    
-		    printf("error: %d", error);
+        //printf("%s ", prompt);
+        error = sys_req(WRITE, TERMINAL, prompt, &inputLength);
+		    fgets(input,80,stdin); 
+		    //printf("error: %d", error);
 		    if (error < 0) {
 		        errorCodeTranslator(error);
 		        return;
 		    }
-		    removeNL(input);
+		    removeNL(input);  
 		    //strcpy(commands[id_com], input);
 		    commands[id_com] = strdup(input);
         id_com++;
@@ -89,7 +88,8 @@ int com_han() {
 		if (exitCode == 1) {
 			puts("Are you sure you want to exit? (y/n)");
 			//fgets(input,*lengthPtr,stdin);
-			sys_req(READ, TERMINAL, input, &lengthPtr);
+			//sys_req(READ, TERMINAL, input, &lengthPtr);
+			scanf("%s", &input);
 			removeNL(input);
 			if (strcmp(input,"N") == 0 || strcmp(input,"n") == 0 || strcmp(input,"No") == 0 || strcmp(input,"no") == 0 || strcmp(input,"NO") == 0) exitCode = 0;
 		}
@@ -132,14 +132,16 @@ int parseCommand(char *commandString) {
 	char* arg2;
 	char* arg3;
 	char* arg4;
-	
+	char* full;
+	int error;
+	int len; 
 	char* strtokaddr;
 	command = strtok(commandString, " ");
 	arg1 = strtok(NULL, " ");
 	arg2 = strtok(NULL, " ");
 	arg3 = strtok(NULL, " ");
 	arg4 = strtok(NULL, " "); 
-  //printf("\ncommandString: %s command: %s, arg1: %s, arg2: %s, arg3: %s, arg4: %s\n", commandString, command, arg1, arg2, arg3, arg4);
+	//printf("\ncommandString: %s command: %s, arg1: %s, arg2: %s, arg3: %s, arg4: %s\n", commandString, command, arg1, arg2, arg3, arg4);
 
 //	printf("command: %s\narg1: %s\narg2: %s\narg3: %s\narg4: %s\n", command,arg1,arg2,arg3,arg4); //XXX: DEBUG
 	if (command == NULL) return 0; //if no command given, simply return...since it's not really an issue
@@ -175,7 +177,7 @@ int parseCommand(char *commandString) {
           return 0;
       }
       else {
-          terminate_process((char*)arg1);
+          terminate_process(arg1);
           return 0;
       }
   }
@@ -637,5 +639,6 @@ int command_check(char* name) {
  */
 
 void setPrompt(char *s) {
+  strcat(s, " \0");
 	prompt = s;
 }
